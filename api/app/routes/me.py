@@ -2,10 +2,11 @@ import secrets
 from datetime import timedelta
 
 from flask import Blueprint, current_app, g
+from sqlalchemy.exc import IntegrityError
 
 from ..auth import api_error, require_tenant, require_user
 from ..extensions import db
-from ..models import Borrower, Invite, Membership, Tenant, utcnow
+from ..models import Borrower, Invite, Membership, Tenant, User, utcnow
 from ..serializers import membership_json, tenant_json, user_json
 from ._helpers import body, handle_bad_input, req_str
 
@@ -72,6 +73,7 @@ def update_tenant():
 def accept_invite():
     data = body()
     code = req_str(data, "code", max_len=16).upper().replace("-", "").replace(" ", "")
+    db.session.execute(db.select(User).where(User.id == g.user.id).with_for_update())  # one accept at a time per user
     invite = db.session.execute(db.select(Invite).where(Invite.code == code).with_for_update()).scalar_one_or_none()
     if invite is None or invite.accepted_at is not None or invite.expires_at < utcnow():
         return api_error(404, "invite_invalid", "That invite code is invalid or has expired.")
@@ -97,6 +99,10 @@ def accept_invite():
         g.user.name = borrower.name
     invite.accepted_at = utcnow()
     invite.accepted_by_user_id = g.user.id
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        return api_error(409, "already_linked", "You're already linked to a different profile in this workspace.")
     db.session.refresh(existing)
     return {"membership": membership_json(existing)}

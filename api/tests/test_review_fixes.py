@@ -233,3 +233,116 @@ def test_local_date_header_drives_today(admin):
     r = admin.client.post(f"/api/loans/{loan['id']}/payments", json={"amount_cents": 100, "paid_on": far},
                           headers={**admin.headers(), "X-Local-Date": far})
     assert r.status_code == 422
+
+
+# --- adversarial pass round 2 -----------------------------------------------------------------
+def test_far_future_start_date_is_422_and_never_persists(admin):
+    b = admin.post("/api/borrowers", json={"name": "FF"}).json["borrower"]
+    body = dict(borrower_id=b["id"], principal_cents=1_000, interest_type="simple", rate_bps=0,
+                schedule="monthly", term_periods=1, start_date="9999-12-31")
+    assert admin.post("/api/loans", json=body).status_code == 422
+    assert admin.post("/api/loans/preview", json=body).status_code == 422
+    assert admin.get("/api/loans").status_code == 200
+    assert admin.get("/api/dashboard").status_code == 200
+    loan = make_loan(admin, b["id"])
+    assert admin.patch(f"/api/loans/{loan['id']}", json={"start_date": "2150-01-01"}).status_code == 422
+    assert admin.get(f"/api/loans/{loan['id']}").json["loan"]["start_date"] == loan["start_date"]
+
+
+def test_idempotency_key_is_scoped_to_loan_and_amount(admin):
+    b = admin.post("/api/borrowers", json={"name": "IK"}).json["borrower"]
+    a = make_loan(admin, b["id"], title="A")
+    bb = make_loan(admin, b["id"], title="B")
+    r = admin.post(f"/api/loans/{a['id']}/payments", json={"amount_cents": 1_000, "idempotency_key": "k1"})
+    assert r.status_code == 201
+    # same key on another loan → conflict, nothing recorded on B
+    r = admin.post(f"/api/loans/{bb['id']}/payments", json={"amount_cents": 1_000, "idempotency_key": "k1"})
+    assert r.status_code == 409 and r.json["error"]["code"] == "idempotency_conflict"
+    assert admin.get(f"/api/loans/{bb['id']}").json["loan"]["payments"] == []
+    # same key, different amount → conflict
+    r = admin.post(f"/api/loans/{a['id']}/payments", json={"amount_cents": 2_000, "idempotency_key": "k1"})
+    assert r.status_code == 409
+    # void frees the key: a re-record with the same key is a NEW payment
+    pid = admin.get(f"/api/loans/{a['id']}").json["loan"]["payments"][0]["id"]
+    admin.post(f"/api/payments/{pid}/void", json={})
+    r = admin.post(f"/api/loans/{a['id']}/payments", json={"amount_cents": 1_000, "idempotency_key": "k1"})
+    assert r.status_code == 201 and r.json["payment"]["voided"] is False
+    assert admin.get(f"/api/loans/{a['id']}").json["loan"]["state"]["balance_cents"] == 109_000
+
+
+def test_concurrent_same_key_different_loans_never_500(app, admin):
+    b = admin.post("/api/borrowers", json={"name": "IK2"}).json["borrower"]
+    loans = [make_loan(admin, b["id"], title=t) for t in ("X", "Y")]
+    results = []
+    barrier = threading.Barrier(2)
+    h = admin.headers()
+
+    def pay(loan_id):
+        c = app.test_client()
+        barrier.wait()
+        results.append(c.post(f"/api/loans/{loan_id}/payments", json={"amount_cents": 500, "idempotency_key": "race"}, headers=h).status_code)
+
+    ts = [threading.Thread(target=pay, args=(l["id"],)) for l in loans]
+    for t in ts: t.start()
+    for t in ts: t.join()
+    assert sorted(results) == [201, 409], results
+
+
+def test_backdated_receipt_snapshots_use_chronological_balance(admin):
+    b = admin.post("/api/borrowers", json={"name": "BD"}).json["borrower"]
+    start = TODAY - timedelta(days=15)
+    loan = make_loan(admin, b["id"], interest_type="compound", rate_bps=1000, schedule="weekly", term_periods=1,
+                     start_date=start.isoformat())
+    # Pay 50_000 on day 7 (the due date, applied after the 10% charge): 110_000 → 60_000; today 66_000.
+    admin.post(f"/api/loans/{loan['id']}/payments", json={"amount_cents": 50_000, "paid_on": (start + timedelta(days=7)).isoformat()})
+    assert admin.get(f"/api/loans/{loan['id']}").json["loan"]["state"]["balance_cents"] == 66_000
+    # Back-date 40_000 to day 2: balance on that date was 100_000, so the receipt must say 100_000 → 60_000,
+    # and the request must be accepted (replayed raw balance stays positive).
+    r = admin.post(f"/api/loans/{loan['id']}/payments", json={"amount_cents": 40_000, "paid_on": (start + timedelta(days=2)).isoformat()})
+    assert r.status_code == 201, r.json
+    assert r.json["payment"]["balance_before_cents"] == 100_000 and r.json["payment"]["balance_after_cents"] == 60_000
+    # 52_000 back-dated would also be fine chronologically and leaves the loan positive after replay.
+    loan2 = make_loan(admin, b["id"], interest_type="compound", rate_bps=1000, schedule="weekly", term_periods=1,
+                      start_date=start.isoformat(), title="L2")
+    admin.post(f"/api/loans/{loan2['id']}/payments", json={"amount_cents": 50_000, "paid_on": (start + timedelta(days=7)).isoformat()})
+    r = admin.post(f"/api/loans/{loan2['id']}/payments", json={"amount_cents": 52_000, "paid_on": (start + timedelta(days=2)).isoformat()})
+    assert r.status_code == 201, r.json
+    # but 60_000 would overpay once replayed → refused
+    loan3 = make_loan(admin, b["id"], interest_type="compound", rate_bps=1000, schedule="weekly", term_periods=1,
+                      start_date=start.isoformat(), title="L3")
+    admin.post(f"/api/loans/{loan3['id']}/payments", json={"amount_cents": 50_000, "paid_on": (start + timedelta(days=7)).isoformat()})
+    r = admin.post(f"/api/loans/{loan3['id']}/payments", json={"amount_cents": 60_000, "paid_on": (start + timedelta(days=2)).isoformat()})
+    assert r.status_code == 422
+
+
+def test_void_reason_hidden_from_borrower(admin, api):
+    b = admin.post("/api/borrowers", json={"name": "VR"}).json["borrower"]
+    loan = make_loan(admin, b["id"])
+    p = admin.post(f"/api/loans/{loan['id']}/payments", json={"amount_cents": 500}).json["payment"]
+    admin.post(f"/api/payments/{p['id']}/void", json={"reason": "SECRET bounced check"})
+    code = admin.post(f"/api/borrowers/{b['id']}/invites").json["invite"]["code"]
+    u = api("vr@example.com")
+    u.tenant_id = u.post("/api/invites/accept", json={"code": code}).json["membership"]["tenant_id"]
+    for body in (u.get(f"/api/loans/{loan['id']}").json, u.get(f"/api/payments/{p['id']}/receipt").json, u.get("/api/borrower/overview").json):
+        assert "SECRET" not in str(body)
+    assert admin.get(f"/api/payments/{p['id']}/receipt").json["payment"]["void_reason"] == "SECRET bounced check"
+
+
+def test_concurrent_invite_accepts_are_409_not_500(app, admin, api):
+    a = admin.post("/api/borrowers", json={"name": "CA"}).json["borrower"]
+    bb = admin.post("/api/borrowers", json={"name": "CB"}).json["borrower"]
+    codes = [admin.post(f"/api/borrowers/{x['id']}/invites").json["invite"]["code"] for x in (a, bb)]
+    u = api("ca@example.com")
+    results = []
+    barrier = threading.Barrier(2)
+    h = u.headers()
+
+    def accept(code):
+        c = app.test_client()
+        barrier.wait()
+        results.append(c.post("/api/invites/accept", json={"code": code}, headers=h).status_code)
+
+    ts = [threading.Thread(target=accept, args=(c,)) for c in codes]
+    for t in ts: t.start()
+    for t in ts: t.join()
+    assert sorted(results) == [200, 409], results

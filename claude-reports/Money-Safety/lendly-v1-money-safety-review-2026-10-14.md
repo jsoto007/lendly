@@ -89,8 +89,38 @@ money is recorded, not moved.
   Void date/reason missing from the shared PDF → moved into the receipt card. Currency text
   field reformatted on each keystroke ("500" → $5.00) → raw decimal field.
 
-### Adversarial pass
-(see below — appended when the verification agent reports)
+### Adversarial pass (independent agent, scratch tests only, 23 attack tests + 3,000-case fuzz)
+Survived (verified, no change needed): due-date payment ordering (fuzz over all schedules incl.
+Jan 31 / Feb 29 starts, split same-day payments, no post-term accrual on a retired loan);
+PATCH/DELETE/cancel/void races against payments (never a silent term rewrite); cancel guard and
+frozen cancelled state; notes hidden on every borrower-reachable endpoint; caps on every money
+field (no Decimal overflow reachable); `X-Local-Date` cannot push a payment or overdue state
+more than 2 days.
+
+Refuted and then fixed in a second pass (each with a regression test, suite now 44 passed):
+- **High** — `start_date: 9999-12-31` raised inside date math after the loan was committed, so
+  one bad loan made every list/dashboard endpoint 500 for the tenant. Fix: `validate_terms`
+  bounds the start year (2000–2100) and proves the schedule is computable; `create_loan`
+  serializes before commit.
+- **Medium** — idempotency key was scoped to the tenant only: the same key on another loan
+  returned the first loan's payment with 200; concurrent reuse across loans → 500; a voided
+  payment's key returned the voided row. Fix: key scoped to loan + live payments, different
+  amount/date → 409 `idempotency_conflict`, duplicate-key errors at flush/commit answered like a
+  retry, voiding frees the key.
+- **Medium** — back-dated compound payments were checked and snapshotted against a balance
+  that already subtracted later-dated payments, so valid amounts were refused with a wrong
+  "owed on that date" and receipts read net of later payments. Fix: the as-of-`paid_on` state
+  uses only payments dated on or before `paid_on`; the replay-at-today check remains the
+  overpay gate.
+- **Low** — `void_reason` was visible to borrowers → admin-only. Concurrent accept of two
+  invites → 500 → user row locked + 409.
+Refuted on challenge (no bug): tiny principals ending with 0-cent installments (rounding
+artifact); accrual stop after 1,200 periods (~23 years weekly).
 
 ### Verdict
-(see below)
+**SAFE TO SHIP for v1 as a lender's record-keeping tool**, given: every finding from three
+review lenses and the adversarial pass is fixed with a regression test (44 backend tests, 2
+real race tests, 5 iOS tests, full simulator walk-through of lender and borrower flows). Not
+verified: Sign in with Apple end to end, email delivery of login codes, and the API under a
+UTC server clock (covered by the header unit test only). No money moves through the system;
+the risk is record accuracy, which is what the tests pin down.

@@ -108,8 +108,10 @@ def create_loan():
         notes=req_str(data, "notes", max_len=2000, required=False),
     )
     db.session.add(loan)
+    db.session.flush()
+    payload = {"loan": loan_json(loan, detail=True)}  # serialize before commit so a bad loan never persists
     db.session.commit()
-    return {"loan": loan_json(loan, detail=True)}, 201
+    return payload, 201
 
 
 @bp.get("/loans/<loan_id>")

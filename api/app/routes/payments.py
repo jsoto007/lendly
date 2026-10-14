@@ -2,12 +2,13 @@ from datetime import date
 
 from flask import Blueprint, g, request
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from ..auth import api_error, require_tenant
 from ..extensions import db
 from ..models import PAYMENT_METHODS, Loan, Payment, Tenant
 from ..serializers import live_payments, loan_json, payment_json, state_of, terms_of, today
-from ..services.schedule import PaymentLike, raw_balance
+from ..services.schedule import PaymentLike, compute_state, raw_balance
 from ._helpers import (MAX_CENTS, BadInput, body, handle_bad_input, parse_uuid, query_int, req_choice,
                        req_date, req_int, req_str)
 
@@ -28,6 +29,22 @@ def _next_receipt_number(tenant_id) -> int:
         text("UPDATE tenants SET receipt_seq = receipt_seq + 1 WHERE id = :tid RETURNING receipt_seq"),
         {"tid": tenant_id},
     ).scalar_one()
+
+
+def _find_idempotent(key: str) -> Payment | None:
+    return db.session.execute(
+        db.select(Payment).where(Payment.tenant_id == g.tenant.id, Payment.idempotency_key == key,
+                                 Payment.voided_at.is_(None))
+    ).scalar_one_or_none()
+
+
+def _idempotency_race(idem, loan, amount, paid_on):
+    """Two retries with the same key raced; the first one won. Answer like a normal retry."""
+    db.session.rollback()
+    dup = _find_idempotent(idem) if idem else None
+    if dup is not None and dup.loan_id == loan.id and dup.amount_cents == amount and dup.paid_on == paid_on:
+        return {"payment": payment_json(dup, dup.loan, g.tenant), "loan": loan_json(dup.loan, detail=True)}, 200
+    return api_error(409, "idempotency_conflict", "This request key was already used for a different payment.")
 
 
 def _receipt_payload(p: Payment) -> dict:
@@ -75,18 +92,21 @@ def record_payment(loan_id):
 
     if idem:
         # A retried request (same key) returns the payment it already created instead of a duplicate.
-        dup = db.session.execute(
-            db.select(Payment).where(Payment.tenant_id == g.tenant.id, Payment.idempotency_key == idem)
-        ).scalar_one_or_none()
+        dup = _find_idempotent(idem)
         if dup is not None:
+            if dup.loan_id != loan.id or dup.amount_cents != amount or dup.paid_on != paid_on:
+                return api_error(409, "idempotency_conflict", "This request key was already used for a different payment.")
             return {"payment": payment_json(dup, dup.loan, g.tenant), "loan": loan_json(dup.loan, detail=True)}, 200
 
     before_today = state_of(loan, now)
     if before_today.is_paid_off:
         return api_error(409, "already_paid", "This loan is already paid off.")
     # For compound loans a back-dated payment must fit the balance that existed on that date,
-    # otherwise the receipt would show more collected than was ever owed.
-    before = state_of(loan, paid_on)
+    # otherwise the receipt would show more collected than was ever owed. "On that date" means
+    # the chronological history up to paid_on — later-dated payments don't exist yet.
+    terms = terms_of(loan)
+    history = [PaymentLike(p.amount_cents, p.paid_on) for p in live_payments(loan) if p.paid_on <= paid_on]
+    before = compute_state(terms, history, paid_on)
     limit = min(before.balance_cents, before_today.balance_cents)
     if amount > limit:
         return api_error(422, "exceeds_balance", f"Amount exceeds the balance owed on that date ({limit / 100:.2f}).")
@@ -106,18 +126,24 @@ def record_payment(loan_id):
     )
     db.session.add(payment)
     loan.payments.append(payment)
-    db.session.flush()
+    try:
+        db.session.flush()
+    except IntegrityError:
+        return _idempotency_race(idem, loan, amount, paid_on)
     # A back-dated payment changes how much interest accrued afterwards; make sure the loan
     # never ends up overpaid once every recorded payment is replayed in date order.
     live = [PaymentLike(p.amount_cents, p.paid_on) for p in live_payments(loan)]
     if raw_balance(terms_of(loan), live, now) < 0:
         db.session.rollback()
         return api_error(422, "exceeds_balance", "That amount would overpay the loan once interest is recomputed for its date.")
-    # Snapshots are as of the payment date (what the borrower owed when they paid);
+    # Snapshots are as of the payment date (what the borrower owed when they paid, and right after);
     # the loan's status reflects today.
-    payment.balance_after_cents = state_of(loan, paid_on).balance_cents
+    payment.balance_after_cents = compute_state(terms, history + [PaymentLike(amount, paid_on)], paid_on).balance_cents
     loan.status = "paid" if state_of(loan, now).is_paid_off else "active"
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        return _idempotency_race(idem, loan, amount, paid_on)
     db.session.refresh(payment)
     return {"payment": payment_json(payment, loan, g.tenant), "loan": loan_json(loan, detail=True)}, 201
 
@@ -176,6 +202,7 @@ def void_payment(payment_id):
     from ..models import utcnow
     p.voided_at = utcnow()
     p.void_reason = req_str(data, "reason", max_len=255, required=False)
+    p.idempotency_key = None  # free the key so a genuine re-record with a new attempt isn't mistaken for a retry
     db.session.flush()
     db.session.refresh(loan)
     if loan.status != "cancelled":

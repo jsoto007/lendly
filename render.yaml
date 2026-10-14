@@ -12,10 +12,12 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.13.5"
+      # The database was created outside this Blueprint (render pg create, 2026-10-14):
+      # lendly-db (dpg-db7pa5vavr4c7392taug-a), Postgres 16, basic 256MB, oregon,
+      # database name lendly_zct3, user lendly. Paste its INTERNAL connection string
+      # into this env var in the dashboard; sync: false keeps the Blueprint from clearing it.
       - key: DATABASE_URL
-        fromDatabase:
-          name: lendly-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: APPLE_BUNDLE_ID
@@ -24,9 +26,3 @@ services:
         value: "false"
       - key: INVITE_LINK_BASE
         value: lendly://invite
-
-databases:
-  - name: lendly-db
-    plan: basic-256mb
-    databaseName: lendly
-    user: lendly

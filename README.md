@@ -93,6 +93,14 @@ workspace.
 - Sign in with Apple: the app sends the identity token, the server verifies it against Apple's
   JWKS for `APPLE_BUNDLE_ID`. Requires the capability on the App ID in the developer portal.
 
+## Render
+
+`render.yaml` defines the API web service (`lendly-api`). The Postgres instance already exists
+and is not managed by the Blueprint: **lendly-db** (`dpg-db7pa5vavr4c7392taug-a`, Postgres 16,
+basic 256MB, Oregon, database `lendly_zct3`, user `lendly`). Set `DATABASE_URL` on the service
+to that instance's *internal* connection string; the pre-deploy command runs `flask db upgrade`.
+Nothing has been deployed or migrated on Render yet.
+
 ## Not done / known gaps
 
 - No push notifications or reminders for due dates.

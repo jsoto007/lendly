@@ -145,7 +145,7 @@ def payment_json(p: Payment, loan: Loan | None = None, tenant: Tenant | None = N
         "balance_after_cents": p.balance_after_cents,
         "voided": p.voided_at is not None,
         "voided_at": p.voided_at.isoformat() if p.voided_at else None,
-        "void_reason": p.void_reason,
+        "void_reason": p.void_reason if _viewer_is_admin() else None,
         "created_at": p.created_at.isoformat(),
     }
     if loan is not None:

@@ -118,6 +118,13 @@ def validate_terms(t: LoanTerms) -> list[str]:
         errors.append("fixed-fee loans do not take a rate")
     if t.interest_type != "fixed" and t.fixed_fee_cents:
         errors.append("only fixed-fee loans take a fee")
+    if t.start_date.year < 2000 or t.start_date.year > 2100:
+        errors.append("start date must be between 2000 and 2100")
+    else:
+        try:
+            period_end(t.start_date, t.schedule, max(t.term_periods, 1) + MAX_ACCRUAL_PERIODS)
+        except (OverflowError, ValueError):
+            errors.append("start date is too far in the future")
     return errors
 
 
