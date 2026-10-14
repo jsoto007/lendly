@@ -26,3 +26,12 @@ services:
         value: "false"
       - key: INVITE_LINK_BASE
         value: lendly://invite
+      # Login-code emails via Mailgun (set the key in the dashboard; same account as the emailer project)
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        sync: false
+      - key: MAILGUN_FROM
+        value: Lendly <no-reply@sotodev.com>
+      - key: MAILGUN_BASE_URL
+        value: https://api.mailgun.net

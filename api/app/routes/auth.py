@@ -3,6 +3,7 @@ import re
 import jwt
 from flask import Blueprint, current_app
 
+from .. import mailer
 from ..auth import (api_error, create_email_code, issue_token, user_from_apple_claims,
                     verify_apple_identity_token, verify_email_code)
 from ..serializers import membership_json, user_json
@@ -27,10 +28,18 @@ def email_request():
     email = req_str(data, "email").lower()
     if not EMAIL_RE.match(email):
         return api_error(422, "invalid", "Enter a valid email address.")
+    if not mailer.is_configured() and not current_app.config["DEV_RETURN_OTP"]:
+        current_app.logger.error("email login requested but MAILGUN_* is not configured")
+        return api_error(503, "email_unavailable", "Email sign-in isn't set up yet. Try Sign in with Apple.")
     code = create_email_code(email)
     out = {"sent": True}
+    if mailer.is_configured():
+        try:
+            mailer.send_login_code(email, code)
+        except mailer.MailError:
+            return api_error(502, "email_failed", "We couldn't send the code. Try again in a minute.")
     if current_app.config["DEV_RETURN_OTP"]:
-        out["dev_code"] = code
+        out["dev_code"] = code  # local dev only; never true in production
     return out
 
 

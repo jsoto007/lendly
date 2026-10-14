@@ -380,6 +380,16 @@
         }
       }
     },
+    "API base URL override. Leave blank for the default.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobrescribe la URL base de la API. Déjalo en blanco para usar la predeterminada."
+          }
+        }
+      }
+    },
     "About %@ will remain; a back-dated payment on a compound loan reduces interest, so the receipt may show less.": {
       "localizations": {
         "es": {
@@ -896,6 +906,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Versión de desarrollo: tu código es %@"
+          }
+        }
+      }
+    },
+    "Developer": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desarrollador"
           }
         }
       }

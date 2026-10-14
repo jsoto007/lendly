@@ -87,9 +87,8 @@ workspace.
 
 ## Auth
 
-- Email one-time code (`/api/auth/email/request` → `/verify`). Email delivery is not wired yet:
-  in dev the code is returned in the response. Production needs a mail provider in
-  `app/auth.py::create_email_code` (Mailgun via the emailer project is the obvious choice).
+- Email one-time code (`/api/auth/email/request` → `/verify`), delivered through Mailgun
+  (`app/mailer.py`, bilingual). Locally, `DEV_RETURN_OTP=true` returns the code in the response instead.
 - Sign in with Apple: the app sends the identity token, the server verifies it against Apple's
   JWKS for `APPLE_BUNDLE_ID`. Requires the capability on the App ID in the developer portal.
 
@@ -113,9 +112,35 @@ basic 256MB, Oregon, database `lendly_zct3`, user `lendly`). Set `DATABASE_URL` 
 to that instance's *internal* connection string; the pre-deploy command runs `flask db upgrade`.
 Nothing has been deployed or migrated on Render yet.
 
+## Environment variables
+
+API (`api/.env` locally, Render dashboard in production; `render.yaml` marks the secrets `sync: false`):
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | yes | Postgres URL. Locally `postgresql+psycopg://postgres@127.0.0.1:5432/lendly_dev`; on Render the **internal** connection string of `lendly-db`. `postgres://` is normalized automatically. |
+| `JWT_SECRET` | yes | Signs session tokens. `render.yaml` generates it; rotate it to sign everyone out. |
+| `APPLE_BUNDLE_ID` | yes | `com.sotodev.lendly` — audience for Sign in with Apple token verification. |
+| `DEV_RETURN_OTP` | no | `true` returns the email login code in the API response. **Must be unset/false in production.** |
+| `MAILGUN_API_KEY` | prod | Mailgun private API key (same account as the emailer project). |
+| `MAILGUN_DOMAIN` | prod | Sending domain, e.g. `mg.sotodev.com`. |
+| `MAILGUN_FROM` | prod | Sender, e.g. `Lendly <no-reply@sotodev.com>`. |
+| `MAILGUN_BASE_URL` | no | `https://api.mailgun.net` (default) or `https://api.eu.mailgun.net`. |
+| `INVITE_LINK_BASE` | no | Prefix for invite links; default `lendly://invite`. |
+| `OTP_TTL_MINUTES`, `JWT_TTL_DAYS`, `INVITE_TTL_DAYS` | no | Defaults 10 / 90 / 14. |
+| `PORT` | no | Local dev server port (5050). Render sets its own. |
+
+Without Mailgun configured and with `DEV_RETURN_OTP` off, email sign-in returns 503 `email_unavailable`
+instead of silently failing.
+
+iOS has no `.env`: the production API URL is the Release value of `APIClient.baseURL`
+(`https://lendly-api.onrender.com`, change it if Render assigns a different hostname), Debug builds use
+`http://127.0.0.1:5050` or the override in Settings → Developer. Sign in with Apple needs the capability
+enabled on the App ID in the Apple Developer portal.
+
 ## Not done / known gaps
 
 - No push notifications or reminders for due dates.
-- Email delivery of login codes (see above).
 - App icon is a placeholder (asset catalog slot is wired, no artwork).
 - Sign in with Apple was not exercised end to end (needs a signed-in Apple ID + paid team).
+- Mailgun delivery is unit-tested against a fake transport, not sent for real (no key on this machine).

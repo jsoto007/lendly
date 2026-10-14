@@ -68,6 +68,8 @@ ES = {
     "start date is too far in the future": "la fecha de inicio está demasiado lejos en el futuro",
     # generic
     "Something went wrong.": "Algo salió mal.",
+    "Email sign-in isn't set up yet. Try Sign in with Apple.": "El inicio de sesión por correo aún no está configurado. Usa Iniciar sesión con Apple.",
+    "We couldn't send the code. Try again in a minute.": "No pudimos enviar el código. Inténtalo de nuevo en un minuto.",
 }
 
 

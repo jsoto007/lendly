@@ -27,6 +27,11 @@ class Config:
     OTP_TTL_MINUTES = int(os.getenv("OTP_TTL_MINUTES", "10"))
     INVITE_TTL_DAYS = int(os.getenv("INVITE_TTL_DAYS", "14"))
     INVITE_LINK_BASE = os.getenv("INVITE_LINK_BASE", "lendly://invite")
+    # Email delivery (login codes). Same names as the emailer project.
+    MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")
+    MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN")
+    MAILGUN_FROM = os.getenv("MAILGUN_FROM")
+    MAILGUN_BASE_URL = os.getenv("MAILGUN_BASE_URL", "https://api.mailgun.net")
 
 
 class TestConfig(Config):
@@ -36,3 +41,6 @@ class TestConfig(Config):
     )
     JWT_SECRET = "test-secret"
     DEV_RETURN_OTP = True
+    MAILGUN_API_KEY = None
+    MAILGUN_DOMAIN = None
+    MAILGUN_FROM = None
