@@ -1,0 +1,9 @@
+Flask==3.1.1
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.1.0
+SQLAlchemy==2.0.41
+psycopg[binary]==3.2.9
+PyJWT[crypto]==2.10.1
+python-dotenv==1.1.1
+gunicorn==23.0.0
+pytest==8.4.1
