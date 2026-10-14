@@ -10,8 +10,16 @@ struct LoansView: View {
     @State private var error: APIError?
 
     enum Filter: String, CaseIterable, Identifiable {
-        case active = "Active", overdue = "Overdue", paid = "Paid", all = "All"
+        case active, overdue, paid, all
         var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .active: tr("Active")
+            case .overdue: tr("Overdue")
+            case .paid: tr("Paid")
+            case .all: tr("All")
+            }
+        }
     }
 
     private var filtered: [LoanDTO] {
@@ -33,7 +41,7 @@ struct LoansView: View {
             List {
                 Section {
                     Picker("Filter", selection: $filter) {
-                        ForEach(Filter.allCases) { Text($0.rawValue).tag($0) }
+                        ForEach(Filter.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
                     .listRowBackground(Color.clear)
@@ -41,9 +49,9 @@ struct LoansView: View {
                 }
                 if loaded && filtered.isEmpty {
                     ContentUnavailableView {
-                        Label(loans.isEmpty ? "No loans yet" : "Nothing here", systemImage: "banknote")
+                        Label(loans.isEmpty ? tr("No loans yet") : tr("Nothing here"), systemImage: "banknote")
                     } description: {
-                        Text(loans.isEmpty ? "Create a loan to start tracking payments and receipts." : "No loans match this filter.")
+                        Text(loans.isEmpty ? tr("Create a loan to start tracking payments and receipts.") : tr("No loans match this filter."))
                     } actions: {
                         if loans.isEmpty { Button("New loan") { showNew = true }.buttonStyle(.borderedProminent) }
                     }
@@ -87,7 +95,11 @@ struct LoanDetailView: View {
     @State private var confirmDelete = false
     @State private var error: APIError?
 
-    enum Tab: String, CaseIterable, Identifiable { case schedule = "Schedule", payments = "Payments"; var id: String { rawValue } }
+    enum Tab: String, CaseIterable, Identifiable {
+        case schedule, payments
+        var id: String { rawValue }
+        var label: String { self == .schedule ? tr("Schedule") : tr("Payments") }
+    }
 
     private var currency: String { model.currency }
     private var canRecord: Bool { model.isAdmin && loan?.status == .active }
@@ -99,7 +111,7 @@ struct LoanDetailView: View {
                     hero(loan)
                     facts(loan)
                     Picker("Section", selection: $tab) {
-                        ForEach(Tab.allCases) { Text($0.rawValue).tag($0) }
+                        ForEach(Tab.allCases) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.segmented)
                     switch tab {
@@ -114,7 +126,7 @@ struct LoanDetailView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(loan?.title ?? initial?.title ?? "Loan")
+        .navigationTitle(loan?.title ?? initial?.title ?? tr("Loan"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if model.isAdmin, let loan {
@@ -182,7 +194,7 @@ struct LoanDetailView: View {
                 ProgressRing(progress: loan.state.progress, lineWidth: 14, tint: tint)
                     .frame(width: 168, height: 168)
                 VStack(spacing: 2) {
-                    Text(loan.state.isPaidOff ? "Paid" : "Remaining").font(.caption).foregroundStyle(.secondary).textCase(.uppercase)
+                    Text(loan.state.isPaidOff ? tr("Paid") : tr("Remaining")).font(.caption).foregroundStyle(.secondary).textCase(.uppercase)
                     Text(Money.format(loan.state.balanceCents, code: currency))
                         .font(.title2.weight(.bold)).monospacedDigit().contentTransition(.numericText())
                         .lineLimit(1).minimumScaleFactor(0.6).frame(maxWidth: 130)
@@ -197,12 +209,12 @@ struct LoanDetailView: View {
                 .buttonStyle(.plain)
                 .disabled(!model.isAdmin)
                 Text("·").foregroundStyle(.tertiary)
-                StatusPill(text: loan.status == .active ? (overdue ? "Overdue" : "On track") : loan.status.label, tint: tint)
+                StatusPill(text: loan.status == .active ? (overdue ? tr("Overdue") : tr("On track")) : loan.status.label, tint: tint)
             }
             .font(.subheadline)
             if loan.status == .active {
                 if overdue {
-                    Label("\(Money.format(loan.state.overdueCents, code: currency)) overdue · \(loan.state.daysOverdue) day\(loan.state.daysOverdue == 1 ? "" : "s") late",
+                    Label("\(Money.format(loan.state.overdueCents, code: currency)) overdue · \(plural(loan.state.daysOverdue, one: "1 day late", other: "\(loan.state.daysOverdue) days late"))",
                           systemImage: "exclamationmark.triangle.fill")
                         .font(.subheadline.weight(.medium)).foregroundStyle(Theme.overdue)
                 } else if let d = loan.state.nextDueDate, let a = loan.state.nextDueCents {
@@ -274,7 +286,11 @@ struct LoanDetailView: View {
     private func payments(_ loan: LoanDTO) -> some View {
         let list = loan.payments ?? []
         if list.isEmpty {
-            EmptyCard(symbol: "receipt", title: "No payments yet", message: model.isAdmin ? "Record the first payment to generate a receipt." : "Payments will appear here once your lender records them.")
+            if model.isAdmin {
+                EmptyCard(symbol: "receipt", title: "No payments yet", message: "Record the first payment to generate a receipt.")
+            } else {
+                EmptyCard(symbol: "receipt", title: "No payments yet", message: "Payments will appear here once your lender records them.")
+            }
         } else {
             VStack(spacing: 0) {
                 ForEach(list) { p in

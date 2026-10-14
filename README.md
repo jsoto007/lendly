@@ -93,6 +93,18 @@ workspace.
 - Sign in with Apple: the app sends the identity token, the server verifies it against Apple's
   JWKS for `APPLE_BUNDLE_ID`. Requires the capability on the App ID in the developer portal.
 
+## Languages
+
+The app ships in English and Spanish. Every user-facing string lives in
+`ios/Lendly/Resources/Localizable.xcstrings` (String Catalog, extracted at build time from
+`Text("…")` literals and the `tr("…")` helper in `Core/Lang.swift`). Settings → Language offers
+*Match device language* (default: follows iOS, including the per-app language in iOS Settings),
+*English* and *Español*; the choice applies immediately without relaunching. Spanish keeps US
+number and currency formatting (`es_US`) since the users are in the US. The app sends
+`Accept-Language`, and the API translates every error message it returns (`api/app/i18n.py`).
+To add a language: add translations in the catalog, add the code to `CFBundleLocalizations` in
+`ios/project.yml`, add a case to `AppLanguage`, and extend `api/app/i18n.py`.
+
 ## Render
 
 `render.yaml` defines the API web service (`lendly-api`). The Postgres instance already exists

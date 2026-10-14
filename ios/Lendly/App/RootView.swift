@@ -18,7 +18,7 @@ struct RootView: View {
                 ContentUnavailableView {
                     Label("Can't reach Lendly", systemImage: "wifi.exclamationmark")
                 } description: {
-                    Text(model.banner ?? "Check your connection and try again.")
+                    Text(model.banner ?? tr("Check your connection and try again."))
                 } actions: {
                     Button("Try again") { model.phase = .loading; Task { await model.bootstrap() } }
                         .buttonStyle(.borderedProminent)

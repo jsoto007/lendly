@@ -6,8 +6,8 @@ struct APIError: Error, LocalizedError, Equatable {
     var message: String
     var errorDescription: String? { message }
 
-    static let offline = APIError(status: 0, code: "offline", message: "Can't reach the server. Check your connection.")
-    static let decoding = APIError(status: 0, code: "decoding", message: "The server sent something unexpected.")
+    @MainActor static var offline: APIError { APIError(status: 0, code: "offline", message: tr("Can't reach the server. Check your connection.")) }
+    @MainActor static var decoding: APIError { APIError(status: 0, code: "decoding", message: tr("The server sent something unexpected.")) }
 }
 
 final class APIClient {
@@ -63,6 +63,7 @@ final class APIClient {
         if let tenantID { request.setValue(tenantID, forHTTPHeaderField: "X-Tenant-Id") }
         // The server treats this as "today" (due dates, defaults), so a 9pm New York lender isn't on tomorrow's UTC date.
         request.setValue(Dates.dayString(.now), forHTTPHeaderField: "X-Local-Date")
+        request.setValue(Lang.shared.code, forHTTPHeaderField: "Accept-Language")  // server error messages come back in this language
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try encoder.encode(body)
@@ -80,7 +81,7 @@ final class APIClient {
             if let env = try? decoder.decode(ErrorEnvelope.self, from: data) {
                 throw APIError(status: status, code: env.error.code, message: env.error.message)
             }
-            throw APIError(status: status, code: "http_\(status)", message: "Request failed (\(status)).")
+            throw APIError(status: status, code: "http_\(status)", message: tr("Request failed (\(status))."))
         }
         if T.self == Empty.self { return Empty() as! T }
         do {

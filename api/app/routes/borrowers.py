@@ -103,7 +103,7 @@ def create_invite(borrower_id):
     if b.archived_at is not None:
         return api_error(409, "borrower_archived", "Unarchive this borrower before inviting them.")
     if b.user_id is not None:
-        return api_error(409, "already_linked", f"{b.name} already has access.")
+        return api_error(409, "already_linked", "{name} already has access.", name=b.name)
     # Only one live invite per borrower.
     db.session.execute(
         db.update(Invite).where(Invite.borrower_id == b.id, Invite.accepted_at.is_(None)).values(expires_at=utcnow())

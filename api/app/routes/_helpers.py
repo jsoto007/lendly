@@ -9,9 +9,11 @@ from ..auth import api_error
 
 
 class BadInput(Exception):
-    def __init__(self, message: str):
+    """A validation error. `message` is an English template; it's translated when rendered."""
+    def __init__(self, message: str, **kwargs):
         super().__init__(message)
         self.message = message
+        self.kwargs = kwargs
 
 
 def body() -> dict:
@@ -25,10 +27,10 @@ def req_str(data: dict, key: str, max_len: int = 255, required: bool = True) -> 
     value = data.get(key)
     if value is None or (isinstance(value, str) and not value.strip()):
         if required:
-            raise BadInput(f"{key} is required.")
+            raise BadInput("{key} is required.", key=key)
         return None
     if not isinstance(value, str):
-        raise BadInput(f"{key} must be text.")
+        raise BadInput("{key} must be text.", key=key)
     return value.strip()[:max_len]
 
 
@@ -40,14 +42,14 @@ def req_int(data: dict, key: str, required: bool = True, default: int = 0, minim
     value = data.get(key)
     if value is None:
         if required:
-            raise BadInput(f"{key} is required.")
+            raise BadInput("{key} is required.", key=key)
         return default
     if isinstance(value, bool) or not isinstance(value, int):
-        raise BadInput(f"{key} must be a whole number.")
+        raise BadInput("{key} must be a whole number.", key=key)
     if minimum is not None and value < minimum:
-        raise BadInput(f"{key} must be at least {minimum}.")
+        raise BadInput("{key} must be at least {minimum}.", key=key, minimum=minimum)
     if maximum is not None and value > maximum:
-        raise BadInput(f"{key} is too large.")
+        raise BadInput("{key} is too large.", key=key)
     return value
 
 
@@ -58,7 +60,7 @@ def query_int(name: str, default: int, lo: int, hi: int) -> int:
     try:
         return max(lo, min(int(raw), hi))
     except ValueError:
-        raise BadInput(f"{name} must be a whole number.")
+        raise BadInput("{key} must be a whole number.", key=name)
 
 
 def local_today() -> date:
@@ -79,7 +81,7 @@ def local_today() -> date:
 def req_bool(data: dict, key: str, default: bool = False) -> bool:
     value = data.get(key, default)
     if not isinstance(value, bool):
-        raise BadInput(f"{key} must be true or false.")
+        raise BadInput("{key} must be true or false.", key=key)
     return value
 
 
@@ -87,12 +89,12 @@ def req_date(data: dict, key: str, required: bool = True, default: date | None =
     value = data.get(key)
     if value is None:
         if required:
-            raise BadInput(f"{key} is required.")
+            raise BadInput("{key} is required.", key=key)
         return default
     try:
         return date.fromisoformat(value)
     except (TypeError, ValueError):
-        raise BadInput(f"{key} must be a date like 2026-10-14.")
+        raise BadInput("{key} must be a date like 2026-10-14.", key=key)
 
 
 def req_choice(data: dict, key: str, choices: tuple, required: bool = True, default: str | None = None) -> str | None:
@@ -100,7 +102,7 @@ def req_choice(data: dict, key: str, choices: tuple, required: bool = True, defa
     if value is None and not required:
         return None
     if value not in choices:
-        raise BadInput(f"{key} must be one of: {', '.join(choices)}.")
+        raise BadInput("{key} must be one of: {choices}.", key=key, choices=", ".join(choices))
     return value
 
 
@@ -114,4 +116,4 @@ def parse_uuid(raw: str) -> uuid.UUID:
 def handle_bad_input(bp):
     @bp.errorhandler(BadInput)
     def _bad(e: BadInput):
-        return api_error(422, "invalid", e.message)
+        return api_error(422, "invalid", e.message, **e.kwargs)

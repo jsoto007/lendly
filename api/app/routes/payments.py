@@ -109,7 +109,7 @@ def record_payment(loan_id):
     before = compute_state(terms, history, paid_on)
     limit = min(before.balance_cents, before_today.balance_cents)
     if amount > limit:
-        return api_error(422, "exceeds_balance", f"Amount exceeds the balance owed on that date ({limit / 100:.2f}).")
+        return api_error(422, "exceeds_balance", "Amount exceeds the balance owed on that date ({amount}).", amount=f"{limit / 100:.2f}")
 
     payment = Payment(
         tenant_id=g.tenant.id,

@@ -66,12 +66,12 @@ struct WelcomeView: View {
         switch result {
         case .failure(let err):
             if (err as? ASAuthorizationError)?.code == .canceled { return }
-            error = APIError(status: 0, code: "apple", message: "Sign in with Apple isn't available on this device right now. Try email instead.")
+            error = APIError(status: 0, code: "apple", message: tr("Sign in with Apple isn't available on this device right now. Try email instead."))
         case .success(let auth):
             guard let credential = auth.credential as? ASAuthorizationAppleIDCredential,
                   let tokenData = credential.identityToken,
                   let token = String(data: tokenData, encoding: .utf8) else {
-                error = APIError(status: 0, code: "apple", message: "Apple didn't return a usable credential.")
+                error = APIError(status: 0, code: "apple", message: tr("Apple didn't return a usable credential."))
                 return
             }
             let name = [credential.fullName?.givenName, credential.fullName?.familyName].compactMap { $0 }.joined(separator: " ")

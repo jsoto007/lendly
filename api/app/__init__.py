@@ -33,6 +33,7 @@ def create_app(config_object=None):
     def handle_unexpected(e):
         app.logger.exception("unhandled error")
         db.session.rollback()
-        return jsonify({"error": {"code": "server_error", "message": "Something went wrong."}}), 500
+        from .i18n import _
+        return jsonify({"error": {"code": "server_error", "message": _("Something went wrong.")}}), 500
 
     return app

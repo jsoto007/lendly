@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct StatTile: View {
-    var title: String
+    var title: LocalizedStringKey
     var value: String
     var symbol: String
     var tint: Color = .accentColor
@@ -78,7 +78,7 @@ struct StatusPill: View {
 }
 
 struct SectionTitle: View {
-    var title: String
+    var title: LocalizedStringKey
     var subtitle: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -95,13 +95,13 @@ struct LoanRow: View {
     var currency: String = "USD"
 
     private var statusText: String {
-        if loan.status == .paid { return "Paid off" }
-        if loan.status == .cancelled { return "Cancelled" }
-        if loan.state.overdueCents > 0 { return "\(Money.format(loan.state.overdueCents, code: currency)) overdue" }
+        if loan.status == .paid { return tr("Paid off") }
+        if loan.status == .cancelled { return tr("Cancelled") }
+        if loan.state.overdueCents > 0 { return tr("\(Money.format(loan.state.overdueCents, code: currency)) overdue") }
         if let d = loan.state.nextDueDate, let amt = loan.state.nextDueCents {
-            return "\(Money.format(amt, code: currency)) due \(Dates.relative(d))"
+            return tr("\(Money.format(amt, code: currency)) due \(Dates.relative(d))")
         }
-        return "Balance due now"
+        return tr("Balance due now")
     }
     private var tint: Color {
         Theme.tint(forStatus: loan.status, overdue: loan.state.overdueCents > 0 && loan.status == .active)
@@ -127,6 +127,7 @@ struct LoanRow: View {
             }
         }
         .padding(.vertical, 4)
+        .contentShape(.rect)
     }
 }
 
@@ -142,7 +143,7 @@ struct PaymentRow: View {
                 .frame(width: 40, height: 40)
                 .background(Color(.secondarySystemGroupedBackground), in: .circle)
             VStack(alignment: .leading, spacing: 3) {
-                Text(showLoan ? (payment.borrowerName ?? payment.loanTitle ?? "Payment") : payment.method.label)
+                Text(showLoan ? (payment.borrowerName ?? payment.loanTitle ?? tr("Payment")) : payment.method.label)
                     .font(.body.weight(.medium))
                 Text(showLoan ? "\(payment.receiptCode) · \(Dates.short(payment.paidOn)) · \(payment.loanTitle ?? "")"
                               : "\(payment.receiptCode) · \(Dates.medium(payment.paidOn))")
@@ -155,13 +156,14 @@ struct PaymentRow: View {
                 .foregroundStyle(payment.voided ? .secondary : .primary)
         }
         .padding(.vertical, 4)
+        .contentShape(.rect)
     }
 }
 
 struct EmptyCard: View {
     var symbol: String
-    var title: String
-    var message: String
+    var title: LocalizedStringKey
+    var message: LocalizedStringKey
     var body: some View {
         ContentUnavailableView {
             Label(title, systemImage: symbol)
@@ -175,7 +177,7 @@ struct EmptyCard: View {
 }
 
 struct LabeledValue: View {
-    var label: String
+    var label: LocalizedStringKey
     var value: String
     var body: some View {
         HStack {

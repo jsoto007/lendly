@@ -52,25 +52,25 @@ struct DashboardView: View {
         VStack(spacing: 24) {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 StatTile(title: "Outstanding", value: Money.format(d.totals.outstandingCents, code: currency), symbol: "clock.arrow.circlepath",
-                         caption: "\(d.totals.activeLoans) active loan\(d.totals.activeLoans == 1 ? "" : "s")")
+                         caption: plural(d.totals.activeLoans, one: "1 active loan", other: "\(d.totals.activeLoans) active loans"))
                 StatTile(title: "Overdue", value: Money.format(d.totals.overdueCents, code: currency), symbol: "exclamationmark.triangle.fill",
                          tint: d.totals.overdueCents > 0 ? Theme.overdue : .secondary,
-                         caption: d.overdue.isEmpty ? "All caught up" : "\(d.overdue.count) loan\(d.overdue.count == 1 ? "" : "s") behind")
+                         caption: d.overdue.isEmpty ? tr("All caught up") : plural(d.overdue.count, one: "1 loan behind", other: "\(d.overdue.count) loans behind"))
                 StatTile(title: "Collected", value: Money.format(d.totals.collectedCents, code: currency), symbol: "checkmark.seal.fill", tint: Theme.good,
-                         caption: "\(d.totals.paidLoans) paid off")
+                         caption: tr("\(d.totals.paidLoans) paid off"))
                 StatTile(title: "Lent out", value: Money.format(d.totals.lentCents, code: currency), symbol: "arrow.up.right.circle.fill", tint: .blue,
-                         caption: "+\(Money.format(d.totals.projectedInterestCents, code: currency)) interest expected")
+                         caption: tr("+\(Money.format(d.totals.projectedInterestCents, code: currency)) interest expected"))
             }
 
             if !d.overdue.isEmpty {
-                section("Needs attention", subtitle: "Payments that are behind schedule") {
+                section("Needs attention", subtitle: tr("Payments that are behind schedule")) {
                     ForEach(d.overdue) { loan in
                         NavigationLink(value: loan) {
                             HStack(spacing: 14) {
                                 InitialsAvatar(name: loan.borrowerName, size: 40)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(loan.borrowerName).font(.body.weight(.medium))
-                                    Text("\(loan.title) · \(loan.state.daysOverdue) day\(loan.state.daysOverdue == 1 ? "" : "s") late")
+                                    Text("\(loan.title) · \(plural(loan.state.daysOverdue, one: "1 day late", other: "\(loan.state.daysOverdue) days late"))")
                                         .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                                 }
                                 Spacer()
@@ -78,6 +78,7 @@ struct DashboardView: View {
                                     .font(.body.weight(.semibold)).monospacedDigit().foregroundStyle(Theme.overdue)
                                 Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                             }
+                            .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
                         if loan.id != d.overdue.last?.id { Divider() }
@@ -85,7 +86,7 @@ struct DashboardView: View {
                 }
             }
 
-            section("Upcoming", subtitle: "Due in the next 30 days") {
+            section("Upcoming", subtitle: tr("Due in the next 30 days")) {
                 if d.upcoming.isEmpty {
                     Text("Nothing due in the next 30 days.").font(.subheadline).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -108,6 +109,7 @@ struct DashboardView: View {
                                 Text(Money.format(u.amountCents, code: currency)).font(.body.weight(.semibold)).monospacedDigit()
                                 Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                             }
+                            .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
                         if u.id != d.upcoming.last?.id { Divider() }
@@ -115,7 +117,7 @@ struct DashboardView: View {
                 }
             }
 
-            section("Collected by month", subtitle: "Last 6 months") {
+            section("Collected by month", subtitle: tr("Last 6 months")) {
                 Chart(d.monthlyCollected) { point in
                     BarMark(x: .value("Month", Dates.monthLabel(point.month)),
                             y: .value("Collected", Double(point.cents) / 100))
@@ -149,7 +151,7 @@ struct DashboardView: View {
         .padding(.bottom, 24)
     }
 
-    private func section<Content: View>(_ title: String, subtitle: String?, @ViewBuilder content: () -> Content) -> some View {
+    private func section<Content: View>(_ title: LocalizedStringKey, subtitle: String?, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionTitle(title: title, subtitle: subtitle)
             VStack(spacing: 8) { content() }

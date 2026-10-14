@@ -346,3 +346,21 @@ def test_concurrent_invite_accepts_are_409_not_500(app, admin, api):
     for t in ts: t.start()
     for t in ts: t.join()
     assert sorted(results) == [200, 409], results
+
+
+def test_spanish_error_messages_via_accept_language(admin):
+    b = admin.post("/api/borrowers", json={"name": "ES"}).json["borrower"]
+    loan = make_loan(admin, b["id"])
+    es = {**admin.headers(), "Accept-Language": "es-US,es;q=0.9,en;q=0.8"}
+    r = admin.client.post(f"/api/loans/{loan['id']}/payments", json={"amount_cents": 999_999}, headers=es)
+    assert r.status_code == 422 and r.json["error"]["message"].startswith("El monto supera el saldo")
+    r = admin.client.post(f"/api/loans/{loan['id']}/payments", json={}, headers=es)
+    assert r.json["error"]["message"] == "amount_cents es obligatorio."
+    r = admin.client.post("/api/loans", json=dict(borrower_id=b["id"], principal_cents=0, interest_type="simple", rate_bps=0,
+                                                   schedule="monthly", term_periods=1), headers=es)
+    assert r.json["error"]["message"] == "principal_cents debe ser al menos 1."
+    r = admin.client.get("/api/dashboard", headers={"Accept-Language": "es"})
+    assert r.json["error"]["message"] == "Inicia sesión para continuar."
+    # English stays the default
+    r = admin.post(f"/api/loans/{loan['id']}/payments", json={})
+    assert r.json["error"]["message"] == "amount_cents is required."

@@ -11,6 +11,7 @@ struct SettingsView: View {
     @State private var error: APIError?
     @State private var saved = false
     @AppStorage(APIClient.defaultsKey) private var apiBase = ""
+    @State private var lang = Lang.shared
 
     private var isInTabs: Bool { model.isAdmin }
 
@@ -21,9 +22,14 @@ struct SettingsView: View {
                     .onSubmit { Task { await saveName() } }
                 LabeledContent("Email", value: model.user?.email ?? "—")
                 if model.user?.hasApple == true {
-                    LabeledContent("Sign in with Apple", value: "Linked")
+                    LabeledContent("Sign in with Apple", value: tr("Linked"))
                 }
             }
+            Section {
+                Picker("Language", selection: $lang.choice) {
+                    ForEach(AppLanguage.allCases) { Text($0.label).tag($0) }
+                }
+            } header: { Text("Language") } footer: { Text("Applies immediately. \"Match device language\" follows the language set in iOS Settings.") }
             if model.isAdmin {
                 Section {
                     TextField("Workspace name", text: $workspaceName)
@@ -41,7 +47,7 @@ struct SettingsView: View {
                                 .foregroundStyle(m.role == .admin ? Color.accentColor : .orange)
                             VStack(alignment: .leading) {
                                 Text(m.tenantName).foregroundStyle(.primary)
-                                Text(m.role == .admin ? "You lend" : "You borrow").font(.caption).foregroundStyle(.secondary)
+                                Text(m.role == .admin ? tr("You lend") : tr("You borrow")).font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
                             if m.id == model.current?.id { Image(systemName: "checkmark").foregroundStyle(Color.accentColor) }

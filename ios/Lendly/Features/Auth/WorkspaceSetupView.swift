@@ -40,7 +40,7 @@ struct WorkspaceSetupView: View {
         .sheet(isPresented: $showJoin) { JoinWorkspaceView(prefilledCode: "") }
     }
 
-    private func choiceCard(symbol: String, tint: Color, title: String, text: String, action: @escaping () -> Void) -> some View {
+    private func choiceCard(symbol: String, tint: Color, title: LocalizedStringKey, text: LocalizedStringKey, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 16) {
                 Image(systemName: symbol)

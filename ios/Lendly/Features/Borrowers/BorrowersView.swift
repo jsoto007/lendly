@@ -20,9 +20,9 @@ struct BorrowersView: View {
             List {
                 if loaded && filtered.isEmpty {
                     ContentUnavailableView {
-                        Label(search.isEmpty ? "No borrowers yet" : "No matches", systemImage: "person.2")
+                        Label(search.isEmpty ? tr("No borrowers yet") : tr("No matches"), systemImage: "person.2")
                     } description: {
-                        Text(search.isEmpty ? "Add the first person you lend to. You'll create their loan right after." : "Try a different name.")
+                        Text(search.isEmpty ? tr("Add the first person you lend to. You'll create their loan right after.") : tr("Try a different name."))
                     } actions: {
                         if search.isEmpty { Button("Add borrower") { showForm = true }.buttonStyle(.borderedProminent) }
                     }
@@ -61,16 +61,22 @@ struct BorrowersView: View {
                 HStack(spacing: 6) {
                     Text(b.name).font(.body.weight(.medium))
                     if b.linked { Image(systemName: "checkmark.seal.fill").font(.caption).foregroundStyle(Color.accentColor) }
-                    if b.archived { StatusPill(text: "Archived", tint: .secondary) }
+                    if b.archived { StatusPill(text: tr("Archived"), tint: .secondary) }
                 }
                 if let s = b.summary {
-                    Text(s.activeLoans == 0 ? "No active loans" : "\(s.activeLoans) active · \(Money.format(s.outstandingCents, code: model.currency)) outstanding")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                    Group {
+                        if s.activeLoans == 0 {
+                            Text("No active loans")
+                        } else {
+                            Text("\(s.activeLoans) active · \(Money.format(s.outstandingCents, code: model.currency)) outstanding")
+                        }
+                    }
+                    .font(.subheadline).foregroundStyle(.secondary)
                 }
             }
             Spacer()
             if let s = b.summary, s.overdueCents > 0 {
-                StatusPill(text: "\(Money.format(s.overdueCents, code: model.currency)) late", tint: Theme.overdue)
+                StatusPill(text: tr("\(Money.format(s.overdueCents, code: model.currency)) late"), tint: Theme.overdue)
             }
         }
         .padding(.vertical, 2)
@@ -111,7 +117,7 @@ struct BorrowerDetailView: View {
                     inviteCard(d)
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            SectionTitle(title: "Loans", subtitle: d.loans.isEmpty ? nil : "\(d.loans.count) total")
+                            SectionTitle(title: "Loans", subtitle: d.loans.isEmpty ? nil : tr("\(d.loans.count) total"))
                             Button { showNewLoan = true } label: { Label("New", systemImage: "plus") }
                                 .buttonStyle(.bordered).controlSize(.small)
                         }
@@ -154,7 +160,7 @@ struct BorrowerDetailView: View {
                         Button(role: b.archived ? nil : .destructive) {
                             Task { await setArchived(!b.archived) }
                         } label: {
-                            Label(b.archived ? "Unarchive" : "Archive", systemImage: b.archived ? "tray.and.arrow.up" : "archivebox")
+                            Label(b.archived ? tr("Unarchive") : tr("Archive"), systemImage: b.archived ? "tray.and.arrow.up" : "archivebox")
                         }
                     }
                 } label: { Image(systemName: "ellipsis.circle") }
@@ -253,7 +259,7 @@ struct BorrowerDetailView: View {
     }
 
     private func inviteMessage(_ invite: InviteDTO, _ b: BorrowerDTO) -> String {
-        "Hi \(b.name.split(separator: " ").first.map(String.init) ?? b.name), I'm tracking our loan in Lendly. Open the app and enter code \(invite.code) to see your balance, payments and receipts.\n\(invite.link)"
+        tr("Hi \(b.name.split(separator: " ").first.map(String.init) ?? b.name), I'm tracking our loan in Lendly. Open the app and enter code \(invite.code) to see your balance, payments and receipts.") + "\n" + invite.link
     }
 
     private func load() async {
@@ -300,13 +306,13 @@ struct BorrowerFormView: View {
                     TextField("Anything worth remembering", text: $notes, axis: .vertical).lineLimit(3...6)
                 }
             }
-            .navigationTitle(existing == nil ? "New borrower" : "Edit borrower")
+            .navigationTitle(existing == nil ? tr("New borrower") : tr("Edit borrower"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel", role: .cancel) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     if busy { ProgressView() } else {
-                        Button(existing == nil ? "Add" : "Save") { Task { await save() } }
+                        Button(existing == nil ? tr("Add") : tr("Save")) { Task { await save() } }
                             .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }

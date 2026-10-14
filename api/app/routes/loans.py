@@ -34,7 +34,8 @@ def terms_from_body(data: dict, existing: Loan | None = None) -> LoanTerms:
     )
     errors = validate_terms(t)
     if errors:
-        raise BadInput("; ".join(errors))
+        from ..i18n import _
+        raise BadInput("; ".join(_(e) for e in errors))
     return t
 
 

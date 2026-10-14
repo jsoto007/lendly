@@ -19,8 +19,9 @@ APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys"
 _jwks_client: jwt.PyJWKClient | None = None
 
 
-def api_error(status: int, code: str, message: str):
-    return jsonify({"error": {"code": code, "message": message}}), status
+def api_error(status: int, code: str, message: str, **kwargs):
+    from .i18n import _
+    return jsonify({"error": {"code": code, "message": _(message, **kwargs)}}), status
 
 
 # ---------------------------------------------------------------- JWT ---------

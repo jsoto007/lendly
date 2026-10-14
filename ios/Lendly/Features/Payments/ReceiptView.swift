@@ -28,7 +28,7 @@ struct ReceiptView: View {
                     ReceiptCard(receipt: r, currency: currency)
                         .padding(.horizontal, 4)
                     if let pdfURL {
-                        ShareLink(item: pdfURL, preview: SharePreview("Receipt \(r.payment.receiptCode)", image: Image(systemName: "doc.richtext"))) {
+                        ShareLink(item: pdfURL, preview: SharePreview(tr("Receipt \(r.payment.receiptCode)"), image: Image(systemName: "doc.richtext"))) {
                             Label("Share receipt (PDF)", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity).frame(height: 36)
                         }
                         .buttonStyle(.glassProminent)
@@ -41,7 +41,7 @@ struct ReceiptView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle(receipt?.payment.receiptCode ?? "Receipt")
+        .navigationTitle(receipt?.payment.receiptCode ?? tr("Receipt"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if justCreated {
@@ -143,13 +143,13 @@ struct ReceiptCard: View {
 
     private var termsLine: String {
         switch receipt.loan.interestType {
-        case .compound: "\(Money.percent(receipt.loan.rateBps)) per period compound"
-        case .simple: "\(Money.percent(receipt.loan.rateBps)) flat interest"
-        case .fixed: receipt.loan.fixedFeePerPeriod ? "\(Money.format(receipt.loan.fixedFeeCents, code: currency)) fee per period" : "\(Money.format(receipt.loan.fixedFeeCents, code: currency)) fee"
+        case .compound: tr("\(Money.percent(receipt.loan.rateBps)) per period compound")
+        case .simple: tr("\(Money.percent(receipt.loan.rateBps)) flat interest")
+        case .fixed: receipt.loan.fixedFeePerPeriod ? tr("\(Money.format(receipt.loan.fixedFeeCents, code: currency)) fee per period") : tr("\(Money.format(receipt.loan.fixedFeeCents, code: currency)) fee")
         }
     }
 
-    private func row(_ label: String, _ value: String, bold: Bool = false) -> some View {
+    private func row(_ label: LocalizedStringKey, _ value: String, bold: Bool = false) -> some View {
         HStack(alignment: .top) {
             Text(label).foregroundStyle(.secondary)
             Spacer()

@@ -7,9 +7,9 @@ enum InterestType: String, Codable, CaseIterable, Identifiable, Hashable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .compound: "Compound"
-        case .simple: "Percentage"
-        case .fixed: "Fixed amount"
+        case .compound: tr("Compound")
+        case .simple: tr("Percentage")
+        case .fixed: tr("Fixed amount")
         }
     }
     var symbol: String {
@@ -21,9 +21,9 @@ enum InterestType: String, Codable, CaseIterable, Identifiable, Hashable {
     }
     var explanation: String {
         switch self {
-        case .compound: "Interest is charged every period on whatever is still owed. Pay early and you pay less."
-        case .simple: "A one-time percentage of the amount lent, added to the total and split across the payments."
-        case .fixed: "A flat dollar amount added on top of the loan, either once or every period."
+        case .compound: tr("Interest is charged every period on whatever is still owed. Pay early and you pay less.")
+        case .simple: tr("A one-time percentage of the amount lent, added to the total and split across the payments.")
+        case .fixed: tr("A flat dollar amount added on top of the loan, either once or every period.")
         }
     }
 }
@@ -33,23 +33,23 @@ enum ScheduleKind: String, Codable, CaseIterable, Identifiable, Hashable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .weekly: "Weekly"
-        case .biweekly: "Every 2 weeks"
-        case .monthly: "Monthly"
+        case .weekly: tr("Weekly")
+        case .biweekly: tr("Every 2 weeks")
+        case .monthly: tr("Monthly")
         }
     }
     var periodNoun: String {
         switch self {
-        case .weekly: "week"
-        case .biweekly: "2 weeks"
-        case .monthly: "month"
+        case .weekly: tr("week")
+        case .biweekly: tr("2 weeks")
+        case .monthly: tr("month")
         }
     }
     func termLabel(_ n: Int) -> String {
         switch self {
-        case .weekly: n == 1 ? "1 week" : "\(n) weeks"
-        case .biweekly: n == 1 ? "2 weeks" : "\(n * 2) weeks"
-        case .monthly: n == 1 ? "1 month" : "\(n) months"
+        case .weekly: plural(n, one: "1 week", other: "\(n) weeks")
+        case .biweekly: tr("\(n * 2) weeks")
+        case .monthly: plural(n, one: "1 month", other: "\(n) months")
         }
     }
 }
@@ -59,13 +59,13 @@ enum PaymentMethod: String, Codable, CaseIterable, Identifiable, Hashable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .cash: "Cash"
+        case .cash: tr("Cash")
         case .zelle: "Zelle"
         case .venmo: "Venmo"
         case .cashapp: "Cash App"
-        case .bank: "Bank transfer"
-        case .check: "Check"
-        case .other: "Other"
+        case .bank: tr("Bank transfer")
+        case .check: tr("Check")
+        case .other: tr("Other")
         }
     }
     var symbol: String {
@@ -81,7 +81,13 @@ enum PaymentMethod: String, Codable, CaseIterable, Identifiable, Hashable {
 
 enum LoanStatus: String, Codable, Hashable {
     case active, paid, cancelled
-    var label: String { rawValue.capitalized }
+    var label: String {
+        switch self {
+        case .active: tr("Active")
+        case .paid: tr("Paid")
+        case .cancelled: tr("Cancelled")
+        }
+    }
 }
 
 enum MemberRole: String, Codable, Hashable {
@@ -95,7 +101,7 @@ struct UserDTO: Codable, Hashable, Identifiable {
     var email: String?
     var name: String?
     var hasApple: Bool
-    var displayName: String { name?.isEmpty == false ? name! : (email ?? "You") }
+    var displayName: String { name?.isEmpty == false ? name! : (email ?? tr("You")) }
 }
 
 struct MembershipDTO: Codable, Hashable, Identifiable {
@@ -228,9 +234,9 @@ struct LoanDTO: Codable, Hashable, Identifiable {
 
     var termsSummary: String {
         switch interestType {
-        case .compound: "\(Money.percent(rateBps)) per \(schedule.periodNoun), compounding"
-        case .simple: "\(Money.percent(rateBps)) flat"
-        case .fixed: fixedFeePerPeriod ? "\(Money.format(fixedFeeCents)) per \(schedule.periodNoun)" : "\(Money.format(fixedFeeCents)) once"
+        case .compound: tr("\(Money.percent(rateBps)) per \(schedule.periodNoun), compounding")
+        case .simple: tr("\(Money.percent(rateBps)) flat")
+        case .fixed: fixedFeePerPeriod ? tr("\(Money.format(fixedFeeCents)) per \(schedule.periodNoun)") : tr("\(Money.format(fixedFeeCents)) once")
         }
     }
 }

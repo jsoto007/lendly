@@ -23,7 +23,7 @@ struct BorrowerHomeView: View {
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Your loans")
-            .navigationSubtitle(data.map { "with \($0.lender.name)" } ?? "")
+            .navigationSubtitle(data.map { tr("with \($0.lender.name)") } ?? "")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showSettings = true } label: { Image(systemName: "person.crop.circle") }
@@ -46,8 +46,14 @@ struct BorrowerHomeView: View {
                 Text("Hi \(d.borrower.name.split(separator: " ").first.map(String.init) ?? d.borrower.name)")
                     .font(.title2.weight(.bold))
                 if let s {
-                    Text(s.outstandingCents == 0 ? "You're all paid up." : "You owe \(Money.format(s.outstandingCents, code: currency)) in total.")
-                        .foregroundStyle(.secondary)
+                    Group {
+                        if s.outstandingCents == 0 {
+                            Text("You're all paid up.")
+                        } else {
+                            Text("You owe \(Money.format(s.outstandingCents, code: currency)) in total.")
+                        }
+                    }
+                    .foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -81,7 +87,7 @@ struct BorrowerHomeView: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                SectionTitle(title: "Receipts", subtitle: d.payments.isEmpty ? nil : "\(d.payments.count) payment\(d.payments.count == 1 ? "" : "s")")
+                SectionTitle(title: "Receipts", subtitle: d.payments.isEmpty ? nil : plural(d.payments.count, one: "1 payment", other: "\(d.payments.count) payments"))
                 if d.payments.isEmpty {
                     Text("Receipts appear here as payments are recorded.").font(.subheadline).foregroundStyle(.secondary)
                 } else {

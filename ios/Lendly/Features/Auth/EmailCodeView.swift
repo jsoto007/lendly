@@ -26,7 +26,7 @@ struct EmailCodeView: View {
                 } header: {
                     Text("Email")
                 } footer: {
-                    Text(sent ? "We sent a 6-digit code to \(email)." : "We'll send you a one-time code. No password to remember.")
+                    if sent { Text("We sent a 6-digit code to \(email).") } else { Text("We'll send you a one-time code. No password to remember.") }
                 }
                 if sent {
                     Section("Code") {
@@ -42,7 +42,7 @@ struct EmailCodeView: View {
                     }
                 }
             }
-            .navigationTitle(sent ? "Enter code" : "Sign in")
+            .navigationTitle(sent ? tr("Enter code") : tr("Sign in"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel", role: .cancel) { dismiss() } }

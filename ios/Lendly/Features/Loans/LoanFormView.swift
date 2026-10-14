@@ -71,9 +71,9 @@ struct LoanFormView: View {
                     .pickerStyle(.segmented)
                     switch interestType {
                     case .compound:
-                        rateField("Rate per \(schedule.periodNoun)")
+                        rateField(tr("Rate per \(schedule.periodNoun)"))
                     case .simple:
-                        rateField("Interest on the amount")
+                        rateField(tr("Interest on the amount"))
                     case .fixed:
                         HStack {
                             Text("Fee")
@@ -99,8 +99,11 @@ struct LoanFormView: View {
                 } header: {
                     Text("Repayment")
                 } footer: {
-                    Text(termsLocked ? "Terms are locked because a payment has been recorded. Void the payments to change them."
-                                     : "\(term) payment\(term == 1 ? "" : "s"), \(schedule.label.lowercased()), over \(schedule.termLabel(term)).")
+                    if termsLocked {
+                        Text("Terms are locked because a payment has been recorded. Void the payments to change them.")
+                    } else {
+                        Text("\(plural(term, one: "1 payment", other: "\(term) payments")), \(schedule.label.lowercased()), over \(schedule.termLabel(term)).")
+                    }
                 }
                 .disabled(termsLocked)
 
@@ -112,13 +115,13 @@ struct LoanFormView: View {
                     TextField("Optional", text: $notes, axis: .vertical).lineLimit(2...5)
                 }
             }
-            .navigationTitle(existing == nil ? "New loan" : "Edit loan")
+            .navigationTitle(existing == nil ? tr("New loan") : tr("Edit loan"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel", role: .cancel) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     if busy { ProgressView() } else {
-                        Button(existing == nil ? "Create" : "Save") { Task { await save() } }
+                        Button(existing == nil ? tr("Create") : tr("Save")) { Task { await save() } }
                             .disabled(terms == nil || (existing == nil && selectedBorrowerID == nil))
                     }
                 }

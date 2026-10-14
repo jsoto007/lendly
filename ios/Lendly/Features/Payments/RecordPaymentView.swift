@@ -75,7 +75,7 @@ struct RecordPaymentView: View {
         }
     }
 
-    private func chip(_ label: String, _ cents: Int) -> some View {
+    private func chip(_ label: LocalizedStringKey, _ cents: Int) -> some View {
         Button {
             amount = Decimal(cents) / 100
         } label: {
