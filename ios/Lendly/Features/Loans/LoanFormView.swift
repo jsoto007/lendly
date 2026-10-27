@@ -60,9 +60,10 @@ struct LoanFormView: View {
                         Spacer()
                         DecimalField(placeholder: "0.00", value: $amount, prefix: "$")
                     }
+                    .disabled(termsLocked)
                     DatePicker("Start date", selection: $startDate, displayedComponents: .date)
+                        .disabled(termsLocked)
                 }
-                .disabled(termsLocked)
 
                 Section {
                     Picker("Interest", selection: $interestType) {
