@@ -138,6 +138,15 @@ iOS has no `.env`: the production API URL is the Release value of `APIClient.bas
 `http://127.0.0.1:5050` or the override in Settings → Developer. Sign in with Apple needs the capability
 enabled on the App ID in the Apple Developer portal.
 
+## TestFlight
+
+`scripts/testflight.sh` archives a signed Release build (team `TZZNAY63L5`, automatic signing,
+build number = git commit count) and uploads it to App Store Connect. It needs either Xcode signed
+in with the team's Apple ID, or an App Store Connect API key exported as `ASC_KEY_PATH`,
+`ASC_KEY_ID`, `ASC_ISSUER_ID` (see the script header). The first upload registers the App ID with
+the Sign in with Apple capability and creates the app record. Release builds talk to the URL in
+`APIClient.baseURL`, so deploy the API first or testers will see "Can't reach Lendly".
+
 ## Not done / known gaps
 
 - No push notifications or reminders for due dates.
