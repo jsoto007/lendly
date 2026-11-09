@@ -32,6 +32,18 @@ class Config:
     MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN")
     MAILGUN_FROM = os.getenv("MAILGUN_FROM")
     MAILGUN_BASE_URL = os.getenv("MAILGUN_BASE_URL", "https://api.mailgun.net")
+    # Login-code abuse limits: per e-mail address (counted in the DB) and per client IP
+    # (in memory, so per gunicorn worker — a backstop, not an exact global limit).
+    OTP_REQUEST_LIMIT = int(os.getenv("OTP_REQUEST_LIMIT", "3"))
+    OTP_REQUEST_WINDOW_MINUTES = int(os.getenv("OTP_REQUEST_WINDOW_MINUTES", "10"))
+    OTP_IP_LIMIT = int(os.getenv("OTP_IP_LIMIT", "20"))
+    # App Review demo account: this address always receives this fixed code and nothing is
+    # e-mailed, so Apple's reviewers can sign in. Both unset = disabled. Use 8+ digits.
+    REVIEW_LOGIN_EMAIL = (os.getenv("REVIEW_LOGIN_EMAIL") or "").strip().lower() or None
+    REVIEW_LOGIN_CODE = (os.getenv("REVIEW_LOGIN_CODE") or "").strip() or None
+    if REVIEW_LOGIN_CODE is not None and not (REVIEW_LOGIN_CODE.isdigit() and 8 <= len(REVIEW_LOGIN_CODE) <= 12):
+        # The verify route caps codes at 12 characters; shorter than 8 is brute-forceable.
+        raise RuntimeError("REVIEW_LOGIN_CODE must be 8 to 12 digits")
 
 
 class TestConfig(Config):
@@ -44,3 +56,7 @@ class TestConfig(Config):
     MAILGUN_API_KEY = None
     MAILGUN_DOMAIN = None
     MAILGUN_FROM = None
+    OTP_REQUEST_LIMIT = 1000      # individual tests opt in to the real limit
+    OTP_IP_LIMIT = 1_000_000
+    REVIEW_LOGIN_EMAIL = None
+    REVIEW_LOGIN_CODE = None

@@ -390,6 +390,16 @@
         }
       }
     },
+    "About": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acerca de"
+          }
+        }
+      }
+    },
     "About %@ will remain; a back-dated payment on a compound loan reduces interest, so the receipt may show less.": {
       "localizations": {
         "es": {
@@ -590,12 +600,12 @@
         }
       }
     },
-    "By continuing you agree to keep your records honest and your borrowers informed.": {
+    "By continuing you agree to our [Terms of Use](%@) and [Privacy Policy](%@).": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Al continuar, te comprometes a llevar registros honestos y a mantener informados a tus prestatarios."
+            "value": "Al continuar aceptas nuestros [Términos de uso](%@) y la [Política de privacidad](%@)."
           }
         }
       }
@@ -770,6 +780,16 @@
         }
       }
     },
+    "Contact support": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contactar soporte"
+          }
+        }
+      }
+    },
     "Continue with Email": {
       "localizations": {
         "es": {
@@ -870,6 +890,16 @@
         }
       }
     },
+    "Delete account": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar cuenta"
+          }
+        }
+      }
+    },
     "Delete loan": {
       "localizations": {
         "es": {
@@ -886,6 +916,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "¿Eliminar este préstamo?"
+          }
+        }
+      }
+    },
+    "Delete your account?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar tu cuenta?"
+          }
+        }
+      }
+    },
+    "Deleting your account removes your data from our servers. Workspaces you own, including every borrower, loan, payment and receipt, are deleted too. Where you are a borrower, only your access is removed; the lender keeps their own record of the loan.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar tu cuenta borra tus datos de nuestros servidores. Los espacios de trabajo que te pertenecen, incluidos todos los prestatarios, préstamos, pagos y recibos, también se eliminan. Donde eres prestatario, solo se quita tu acceso; el prestamista conserva su propio registro del préstamo."
+          }
+        }
+      }
+    },
+    "Deleting…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminando…"
           }
         }
       }
@@ -1863,6 +1923,16 @@
         }
       }
     },
+    "Privacy Policy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Política de privacidad"
+          }
+        }
+      }
+    },
     "Pull to try again.": {
       "localizations": {
         "es": {
@@ -2019,6 +2089,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "La solicitud falló (%lld)."
+          }
+        }
+      }
+    },
+    "Resend code": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar código"
+          }
+        }
+      }
+    },
+    "Resend in %llds": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reenviar en %lld s"
           }
         }
       }
@@ -2273,6 +2363,16 @@
         }
       }
     },
+    "Terms of Use": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Términos de uso"
+          }
+        }
+      }
+    },
     "That's more than the %@ remaining.": {
       "localizations": {
         "es": {
@@ -2339,6 +2439,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Con esto se liquida el préstamo. 🎉"
+          }
+        }
+      }
+    },
+    "This permanently deletes your account. Workspaces you own, with all their borrowers, loans, payments and receipts, are deleted too, and anyone you invited loses access. This can't be undone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esto elimina tu cuenta de forma permanente. Los espacios de trabajo que te pertenecen, con todos sus prestatarios, préstamos, pagos y recibos, también se eliminan, y las personas que invitaste pierden el acceso. Esto no se puede deshacer."
           }
         }
       }

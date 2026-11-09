@@ -4,6 +4,8 @@ import SwiftUI
 /// and only parses them. Formatted currency fields reformat on every keystroke,
 /// which turns "500" into "$5.00"; this avoids that.
 struct DecimalField: View {
+    /// Optional leading label; when set the whole row (label included) focuses the field on tap.
+    var label: String? = nil
     var placeholder: String
     @Binding var value: Decimal?
     var prefix: String? = nil
@@ -16,6 +18,7 @@ struct DecimalField: View {
 
     var body: some View {
         HStack(spacing: 2) {
+            if let label { Text(label) }
             Spacer(minLength: 0)
             if let prefix { Text(prefix).font(font).foregroundStyle(text.isEmpty ? .tertiary : .primary) }
             TextField(placeholder, text: $text)
@@ -43,6 +46,20 @@ struct DecimalField: View {
                 .onAppear { text = Self.render(value, maxFractionDigits: maxFractionDigits) }
             if let suffix { Text(suffix).foregroundStyle(.secondary) }
         }
+        .contentShape(.rect)
+        .onTapGesture { focused = true }  // tapping anywhere right of the label focuses the digits
+    }
+
+    /// Binding the caller can toggle to focus the field from outside (e.g. a tap on the row label).
+    init(_ label: String? = nil, placeholder: String, value: Binding<Decimal?>, prefix: String? = nil, suffix: String? = nil,
+         maxFractionDigits: Int = 2, font: Font = .body) {
+        self.label = label
+        self.placeholder = placeholder
+        self._value = value
+        self.prefix = prefix
+        self.suffix = suffix
+        self.maxFractionDigits = maxFractionDigits
+        self.font = font
     }
 
     static func sanitize(_ raw: String, maxFractionDigits: Int) -> String {

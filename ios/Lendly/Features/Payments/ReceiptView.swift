@@ -20,7 +20,7 @@ struct ReceiptView: View {
         ScrollView {
             if let r = receipt {
                 VStack(spacing: 20) {
-                    if justCreated {
+                    if justCreated, !r.payment.voided {
                         Label("Payment recorded", systemImage: "checkmark.circle.fill")
                             .font(.headline).foregroundStyle(Theme.good)
                             .padding(.top, 8)

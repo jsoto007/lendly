@@ -55,11 +55,7 @@ struct LoanFormView: View {
                 }
                 Section("Loan") {
                     TextField("What is it for? (e.g. Car repair)", text: $title)
-                    HStack {
-                        Text("Amount")
-                        Spacer()
-                        DecimalField(placeholder: "0.00", value: $amount, prefix: "$")
-                    }
+                    DecimalField(tr("Amount"), placeholder: "0.00", value: $amount, prefix: "$")
                     .disabled(termsLocked)
                     DatePicker("Start date", selection: $startDate, displayedComponents: .date)
                         .disabled(termsLocked)
@@ -76,11 +72,7 @@ struct LoanFormView: View {
                     case .simple:
                         rateField(tr("Interest on the amount"))
                     case .fixed:
-                        HStack {
-                            Text("Fee")
-                            Spacer()
-                            DecimalField(placeholder: "0.00", value: $fee, prefix: "$")
-                        }
+                        DecimalField(tr("Fee"), placeholder: "0.00", value: $fee, prefix: "$")
                         Toggle("Charge every \(schedule.periodNoun)", isOn: $feePerPeriod)
                     }
                 } header: {
@@ -142,11 +134,7 @@ struct LoanFormView: View {
     }
 
     private func rateField(_ label: String) -> some View {
-        HStack {
-            Text(label)
-            Spacer()
-            DecimalField(placeholder: "0", value: $ratePercent, suffix: "%").frame(maxWidth: 120)
-        }
+        DecimalField(label, placeholder: "0", value: $ratePercent, suffix: "%")
     }
 
     @ViewBuilder

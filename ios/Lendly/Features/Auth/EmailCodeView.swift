@@ -8,6 +8,8 @@ struct EmailCodeView: View {
     @State private var sent = false
     @State private var devCode: String?
     @State private var busy = false
+    @State private var resendIn = 0
+    @State private var cooldownTask: Task<Void, Never>?
     @State private var error: APIError?
     @FocusState private var focus: Field?
     enum Field { case email, code }
@@ -56,12 +58,16 @@ struct EmailCodeView: View {
                     }
                 }
                 if sent {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button("Use a different email") { sent = false; code = ""; devCode = nil; focus = .email }
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Button("Use a different email") { sent = false; code = ""; devCode = nil; stopResendCooldown(); focus = .email }
+                        Spacer()
+                        Button(resendIn > 0 ? tr("Resend in \(resendIn)s") : tr("Resend code")) { Task { await send() } }
+                            .disabled(busy || resendIn > 0)
                     }
                 }
             }
             .onAppear { focus = .email }
+            .onDisappear { cooldownTask?.cancel() }
             .apiErrorAlert($error)
         }
         .presentationDetents([.medium, .large])
@@ -74,7 +80,26 @@ struct EmailCodeView: View {
             devCode = r.devCode
             sent = true
             focus = .code
+            startResendCooldown()
         } catch let e as APIError { error = e } catch { self.error = APIError(status: 0, code: "unknown", message: error.localizedDescription) }
+    }
+
+    /// The server allows a few codes per address per window; the cooldown stops accidental double taps.
+    private func startResendCooldown() {
+        cooldownTask?.cancel()
+        resendIn = 30
+        cooldownTask = Task {
+            while resendIn > 0, !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                if !Task.isCancelled { resendIn -= 1 }
+            }
+        }
+    }
+
+    private func stopResendCooldown() {
+        cooldownTask?.cancel()
+        cooldownTask = nil
+        resendIn = 0
     }
 
     private func verify() async {

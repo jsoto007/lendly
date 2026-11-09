@@ -4,6 +4,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
+import threading
+import time
 import uuid
 from datetime import timedelta
 from functools import wraps
@@ -88,21 +90,80 @@ def _hash_code(email: str, code: str) -> str:
     return hmac.new(secret, f"{email.lower()}:{code}".encode(), hashlib.sha256).hexdigest()
 
 
-def create_email_code(email: str) -> str:
+def create_email_code(email: str, code: str | None = None) -> str:
+    """Issue a one-time code for `email`. `code` is only passed for the App Review demo login."""
     email = email.strip().lower()
-    code = f"{secrets.randbelow(1_000_000):06d}"
+    code = code or f"{secrets.randbelow(1_000_000):06d}"
     # Only one live code per address.
     db.session.execute(
         db.update(OtpCode).where(OtpCode.email == email, OtpCode.consumed_at.is_(None)).values(consumed_at=utcnow())
     )
     db.session.add(OtpCode(
         email=email,
+        inbox=inbox_key(email),
         code_hash=_hash_code(email, code),
         expires_at=utcnow() + timedelta(minutes=current_app.config["OTP_TTL_MINUTES"]),
     ))
     db.session.commit()
     current_app.logger.info("email code issued for %s", email)
     return code
+
+
+def inbox_key(email: str) -> str:
+    """The mailbox an address really lands in, for rate limiting: lower-cased, and for Gmail
+    with dots and +tags removed so victim+1@gmail.com can't dodge victim@gmail.com's limit."""
+    email = email.strip().lower()
+    local, _, domain = email.rpartition("@")
+    if domain in ("gmail.com", "googlemail.com"):
+        local = local.split("+", 1)[0].replace(".", "")
+        domain = "gmail.com"
+    else:
+        local = local.split("+", 1)[0]
+    return f"{local}@{domain}"
+
+
+def code_requests_exhausted(email: str) -> bool:
+    """True once this inbox has asked for OTP_REQUEST_LIMIT codes inside the window (consumed or
+    not), so one mailbox can't be flooded with login e-mails. Takes a transaction-scoped advisory
+    lock on the inbox so concurrent requests count each other (no count-then-insert gap); the
+    lock is released by the commit in create_email_code or the request's rollback."""
+    cfg = current_app.config
+    key = inbox_key(email)
+    db.session.execute(db.text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": "otp:" + key})
+    since = utcnow() - timedelta(minutes=cfg["OTP_REQUEST_WINDOW_MINUTES"])
+    n = db.session.execute(
+        db.select(db.func.count(OtpCode.id)).where(OtpCode.inbox == key, OtpCode.created_at >= since)
+    ).scalar_one()
+    return n >= cfg["OTP_REQUEST_LIMIT"]
+
+
+_ip_hits: dict[str, list[float]] = {}
+_ip_lock = threading.Lock()
+
+
+def client_ip() -> str:
+    """The proxy-appended address when behind Render, else the socket peer. The last hop in
+    X-Forwarded-For is the one the proxy added, so a client can't spoof it with its own header."""
+    route = request.access_route
+    return route[-1] if route else (request.remote_addr or "unknown")
+
+
+def ip_requests_exhausted(ip: str) -> bool:
+    """Best-effort per-IP limit on code requests (in memory, per worker)."""
+    cfg = current_app.config
+    window = cfg["OTP_REQUEST_WINDOW_MINUTES"] * 60
+    now = time.monotonic()
+    with _ip_lock:
+        hits = [t for t in _ip_hits.get(ip, []) if now - t < window]
+        if len(hits) >= cfg["OTP_IP_LIMIT"]:
+            _ip_hits[ip] = hits
+            return True
+        hits.append(now)
+        _ip_hits[ip] = hits
+        if len(_ip_hits) > 10_000:  # keep the table bounded
+            for stale in [k for k, v in _ip_hits.items() if not v or now - v[-1] >= window]:
+                _ip_hits.pop(stale, None)
+        return False
 
 
 def verify_email_code(email: str, code: str) -> User | None:

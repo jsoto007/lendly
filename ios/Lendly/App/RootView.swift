@@ -35,23 +35,24 @@ struct RootView: View {
     }
 }
 
+enum AdminTab: Hashable { case dashboard, borrowers, loans, settings }
+
 struct AdminTabs: View {
     @Environment(AppModel.self) private var model
-    @State private var selection: Tab = .dashboard
-    enum Tab: Hashable { case dashboard, borrowers, loans, settings }
 
     var body: some View {
-        TabView(selection: $selection) {
-            SwiftUI.Tab("Dashboard", systemImage: "chart.pie.fill", value: Tab.dashboard) {
+        @Bindable var model = model
+        TabView(selection: $model.adminTab) {
+            SwiftUI.Tab("Dashboard", systemImage: "chart.pie.fill", value: AdminTab.dashboard) {
                 DashboardView()
             }
-            SwiftUI.Tab("Borrowers", systemImage: "person.2.fill", value: Tab.borrowers) {
+            SwiftUI.Tab("Borrowers", systemImage: "person.2.fill", value: AdminTab.borrowers) {
                 BorrowersView()
             }
-            SwiftUI.Tab("Loans", systemImage: "list.bullet.rectangle.portrait.fill", value: Tab.loans) {
+            SwiftUI.Tab("Loans", systemImage: "list.bullet.rectangle.portrait.fill", value: AdminTab.loans) {
                 LoansView()
             }
-            SwiftUI.Tab("Settings", systemImage: "gearshape.fill", value: Tab.settings) {
+            SwiftUI.Tab("Settings", systemImage: "gearshape.fill", value: AdminTab.settings) {
                 SettingsView()
             }
         }

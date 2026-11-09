@@ -4,8 +4,8 @@ import jwt
 from flask import Blueprint, current_app
 
 from .. import mailer
-from ..auth import (api_error, create_email_code, issue_token, user_from_apple_claims,
-                    verify_apple_identity_token, verify_email_code)
+from ..auth import (api_error, client_ip, code_requests_exhausted, create_email_code, ip_requests_exhausted,
+                    issue_token, user_from_apple_claims, verify_apple_identity_token, verify_email_code)
 from ..serializers import membership_json, user_json
 from ._helpers import body, handle_bad_input, req_str
 
@@ -28,7 +28,17 @@ def email_request():
     email = req_str(data, "email").lower()
     if not EMAIL_RE.match(email):
         return api_error(422, "invalid", "Enter a valid email address.")
-    if not mailer.is_configured() and not current_app.config["DEV_RETURN_OTP"]:
+    cfg = current_app.config
+    if ip_requests_exhausted(client_ip()):
+        return api_error(429, "too_many_requests", "Too many requests. Try again in a few minutes.")
+    if code_requests_exhausted(email):
+        return api_error(429, "too_many_requests", "Too many codes requested for this email. Try again in {minutes} minutes.",
+                         minutes=cfg["OTP_REQUEST_WINDOW_MINUTES"])
+    if cfg["REVIEW_LOGIN_EMAIL"] and cfg["REVIEW_LOGIN_CODE"] and email == cfg["REVIEW_LOGIN_EMAIL"]:
+        # App Review demo account: fixed code, nothing e-mailed, works without Mailgun.
+        create_email_code(email, code=cfg["REVIEW_LOGIN_CODE"])
+        return {"sent": True}
+    if not mailer.is_configured() and not cfg["DEV_RETURN_OTP"]:
         current_app.logger.error("email login requested but MAILGUN_* is not configured")
         return api_error(503, "email_unavailable", "Email sign-in isn't set up yet. Try Sign in with Apple.")
     code = create_email_code(email)

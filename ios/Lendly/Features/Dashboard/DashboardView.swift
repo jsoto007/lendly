@@ -71,7 +71,7 @@ struct DashboardView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(loan.borrowerName).font(.body.weight(.medium))
                                     Text("\(loan.title) · \(plural(loan.state.daysOverdue, one: "1 day late", other: "\(loan.state.daysOverdue) days late"))")
-                                        .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                                        .font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
                                 }
                                 Spacer()
                                 Text(Money.format(loan.state.overdueCents, code: currency))
@@ -103,7 +103,7 @@ struct DashboardView: View {
                                 .frame(width: 44)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(u.borrowerName).font(.body.weight(.medium))
-                                    Text("\(u.title) · \(Dates.relative(u.dueDate))").font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                                    Text("\(u.title) · \(Dates.relative(u.dueDate))").font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
                                 }
                                 Spacer()
                                 Text(Money.format(u.amountCents, code: currency)).font(.body.weight(.semibold)).monospacedDigit()

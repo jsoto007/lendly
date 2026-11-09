@@ -23,6 +23,12 @@ if [[ -n "${ASC_KEY_PATH:-}" ]]; then
 fi
 
 echo "==> Generating project (build $BUILD_NUMBER)"
+ORIGINAL_PROJECT_YML="$(cat project.yml)"
+restore_project_yml() {  # leave the repo as we found it, whatever happens below
+  printf '%s\n' "$ORIGINAL_PROJECT_YML" > project.yml
+  xcodegen generate >/dev/null 2>&1 || true
+}
+trap restore_project_yml EXIT
 sed -i '' "s/CFBundleVersion: \"[0-9]*\"/CFBundleVersion: \"$BUILD_NUMBER\"/" project.yml
 xcodegen generate >/dev/null
 

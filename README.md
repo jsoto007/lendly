@@ -85,6 +85,20 @@ loans/receipts, and never see the lender's private notes. Invites are 8-char cod
 (`lendly://invite/CODE` deep link also works); a user can be linked to one borrower profile per
 workspace.
 
+## Account deletion
+
+`DELETE /api/me` (Settings → Delete account) removes the user and, in one transaction, every workspace
+they own: borrowers, loans, payments, receipts, invites and memberships. Where the user is only a
+borrower in someone else's workspace, just the link is removed (`borrowers.user_id` → NULL) so the
+lender keeps their records and can re-invite. Required by App Store guideline 5.1.1(v).
+
+## Legal pages
+
+Welcome and Settings link to `https://sotodev.com/lendly/privacy`, `/terms` and `/support`
+(`ios/Lendly/Core/Links.swift`). Those pages must be live before submission; App Store Connect asks for
+the privacy policy URL too. `ios/Lendly/PrivacyInfo.xcprivacy` declares the collected data types and the
+UserDefaults required-reason API (CA92.1).
+
 ## Auth
 
 - Email one-time code (`/api/auth/email/request` → `/verify`), delivered through Mailgun
@@ -128,6 +142,8 @@ API (`api/.env` locally, Render dashboard in production; `render.yaml` marks the
 | `MAILGUN_BASE_URL` | no | `https://api.mailgun.net` (default) or `https://api.eu.mailgun.net`. |
 | `INVITE_LINK_BASE` | no | Prefix for invite links; default `lendly://invite`. |
 | `OTP_TTL_MINUTES`, `JWT_TTL_DAYS`, `INVITE_TTL_DAYS` | no | Defaults 10 / 90 / 14. |
+| `OTP_REQUEST_LIMIT`, `OTP_REQUEST_WINDOW_MINUTES`, `OTP_IP_LIMIT` | no | Login-code abuse limits: codes per **mailbox** per window (3 / 10 min; Gmail dots and `+tags` collapse to one mailbox, counted under an advisory lock) and requests per client IP per window (20; in-memory, per worker; the IP is the last `X-Forwarded-For` hop, so confirm Render appends the client address before relying on it). Over the limit → 429 `too_many_requests`. |
+| `REVIEW_LOGIN_EMAIL`, `REVIEW_LOGIN_CODE` | review | App Review demo account: that address always receives that fixed code and nothing is e-mailed, so Apple's reviewers can sign in without an inbox. Set both (code **8–12 digits**, enforced at startup) and put them in the App Review notes; unset = disabled. Use an address nobody else owns. If a reviewer deletes the demo account, re-seed it. |
 | `PORT` | no | Local dev server port (5050). Render sets its own. |
 
 Without Mailgun configured and with `DEV_RETURN_OTP` off, email sign-in returns 503 `email_unavailable`
@@ -150,6 +166,8 @@ the Sign in with Apple capability and creates the app record. Release builds tal
 ## Not done / known gaps
 
 - No push notifications or reminders for due dates.
-- App icon is a placeholder (asset catalog slot is wired, no artwork).
-- Sign in with Apple was not exercised end to end (needs a signed-in Apple ID + paid team).
+- Sign in with Apple was not exercised end to end (needs a signed-in Apple ID + paid team). Account
+  deletion removes our user row but does not call Apple's token-revocation endpoint yet.
 - Mailgun delivery is unit-tested against a fake transport, not sent for real (no key on this machine).
+- The legal pages linked from the app (privacy, terms, support) still have to be published.
+- iPad is enabled and works, but it is the phone layout stretched to full width.

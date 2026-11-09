@@ -70,6 +70,9 @@ ES = {
     "Something went wrong.": "Algo salió mal.",
     "Email sign-in isn't set up yet. Try Sign in with Apple.": "El inicio de sesión por correo aún no está configurado. Usa Iniciar sesión con Apple.",
     "We couldn't send the code. Try again in a minute.": "No pudimos enviar el código. Inténtalo de nuevo en un minuto.",
+    "Too many requests. Try again in a few minutes.": "Demasiadas solicitudes. Inténtalo de nuevo en unos minutos.",
+    "Something changed while deleting your account. Try again.": "Algo cambió mientras eliminábamos tu cuenta. Inténtalo de nuevo.",
+    "Too many codes requested for this email. Try again in {minutes} minutes.": "Se pidieron demasiados códigos para este correo. Inténtalo de nuevo en {minutes} minutos.",
 }
 
 

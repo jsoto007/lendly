@@ -51,8 +51,9 @@ struct WelcomeView: View {
                 }
                 .padding(.horizontal, 24)
                 .disabled(busy)
-                Text("By continuing you agree to keep your records honest and your borrowers informed.")
-                    .font(.caption2).foregroundStyle(.tertiary)
+                Text(legalFooter)
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .tint(.accentColor)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
                     .padding(.bottom, 8)
@@ -60,6 +61,12 @@ struct WelcomeView: View {
         }
         .sheet(isPresented: $showEmail) { EmailCodeView() }
         .apiErrorAlert($error)
+    }
+
+    /// "By continuing you agree to our Terms of Use and Privacy Policy", with both as tappable links.
+    private var legalFooter: AttributedString {
+        let text = tr("By continuing you agree to our [Terms of Use](\(Links.terms.absoluteString)) and [Privacy Policy](\(Links.privacy.absoluteString)).")
+        return (try? AttributedString(markdown: text)) ?? AttributedString(text)
     }
 
     private func handleApple(_ result: Result<ASAuthorization, Error>) async {

@@ -21,11 +21,7 @@ struct RecordPaymentView: View {
         NavigationStack {
             Form {
                 Section {
-                    HStack {
-                        Text("Amount")
-                        Spacer()
-                        DecimalField(placeholder: "0.00", value: $amount, prefix: "$", font: .title3.weight(.semibold))
-                    }
+                    DecimalField(tr("Amount"), placeholder: "0.00", value: $amount, prefix: "$", font: .title3.weight(.semibold))
                     HStack(spacing: 8) {
                         if let next = loan.state.nextDueCents, next > 0 {
                             chip("Installment", next)

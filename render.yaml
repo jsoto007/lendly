@@ -35,3 +35,9 @@ services:
         value: Lendly <no-reply@sotodev.com>
       - key: MAILGUN_BASE_URL
         value: https://api.mailgun.net
+      # App Review demo account (set both in the dashboard): this address always gets this fixed
+      # code and nothing is e-mailed, so Apple's reviewers can sign in. Use 8+ digits.
+      - key: REVIEW_LOGIN_EMAIL
+        sync: false
+      - key: REVIEW_LOGIN_CODE
+        sync: false

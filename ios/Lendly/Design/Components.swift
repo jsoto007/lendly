@@ -99,7 +99,7 @@ struct LoanRow: View {
         if loan.status == .cancelled { return tr("Cancelled") }
         if loan.state.overdueCents > 0 { return tr("\(Money.format(loan.state.overdueCents, code: currency)) overdue") }
         if let d = loan.state.nextDueDate, let amt = loan.state.nextDueCents {
-            return tr("\(Money.format(amt, code: currency)) due \(Dates.relative(d))")
+            return tr("\(Money.format(amt, code: currency)) due \(Dates.relative(d, inSentence: true))")
         }
         return tr("Balance due now")
     }
@@ -118,7 +118,7 @@ struct LoanRow: View {
                 Text(loan.title).font(.body.weight(.medium))
                 Text(showBorrower ? "\(loan.borrowerName) · \(statusText)" : statusText)
                     .font(.subheadline).foregroundStyle(loan.state.overdueCents > 0 && loan.status == .active ? Theme.overdue : .secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
@@ -147,7 +147,7 @@ struct PaymentRow: View {
                     .font(.body.weight(.medium))
                 Text(showLoan ? "\(payment.receiptCode) · \(Dates.short(payment.paidOn)) · \(payment.loanTitle ?? "")"
                               : "\(payment.receiptCode) · \(Dates.medium(payment.paidOn))")
-                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                    .font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
             }
             Spacer()
             Text(Money.format(payment.amountCents, code: currency))

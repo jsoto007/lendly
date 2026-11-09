@@ -113,6 +113,10 @@ final class APIClient {
         let r: R = try await send("PATCH", "/api/me", body: ["name": name])
         return r.user
     }
+    /// Deletes the signed-in account and everything it owns (204, no body).
+    func deleteAccount() async throws {
+        let _: Empty = try await send("DELETE", "/api/me")
+    }
     func createTenant(name: String) async throws -> MembershipDTO {
         struct R: Decodable { var membership: MembershipDTO }
         let r: R = try await send("POST", "/api/tenants", body: ["name": name])

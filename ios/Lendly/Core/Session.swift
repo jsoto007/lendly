@@ -15,6 +15,9 @@ final class AppModel {
     var current: MembershipDTO?
     var pendingInviteCode: String?
     var banner: String?
+    /// Selected admin tab. Kept here (not in the view) so a language change, which rebuilds the
+    /// whole view tree, doesn't drop the user back on the Dashboard.
+    var adminTab: AdminTab = .dashboard
 
     init() {
         api.onUnauthorized = { [weak self] in
@@ -88,7 +91,22 @@ final class AppModel {
         user = nil
         memberships = []
         current = nil
+        adminTab = .dashboard  // the next person to sign in starts on the Dashboard
+        pendingInviteCode = nil
+        banner = nil
         phase = .signedOut
+    }
+
+    /// Deletes the account server-side (and every workspace it owns), then clears the device.
+    func deleteAccount() async throws {
+        do {
+            try await api.deleteAccount()
+        } catch let error as APIError where error.status == 409 {
+            // Lost a race with another request from this account (e.g. a second device); the
+            // server removed nothing, so one retry completes it.
+            try await api.deleteAccount()
+        }
+        signOut()
     }
 
     // MARK: Invites

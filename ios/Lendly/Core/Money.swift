@@ -92,17 +92,21 @@ enum Dates {
         return d.formatted(Date.FormatStyle(date: .long, time: .omitted).locale(Lang.shared.locale))
     }
 
-    static func relative(_ string: String) -> String {
+    /// "Today", "In 3 days", "Yesterday" or a short date. `inSentence` lowercases the relative
+    /// phrases so they read naturally mid-sentence ("due in 3 days"); dates are left as they are.
+    static func relative(_ string: String, inSentence: Bool = false) -> String {
         guard let d = day(string) else { return string }
         let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: .now), to: d).day ?? 0
+        let phrase: String
         switch days {
-        case 0: return tr("Today")
-        case 1: return tr("Tomorrow")
-        case -1: return tr("Yesterday")
-        case 2...6: return tr("In \(days) days")
-        case -6 ... -2: return tr("\(-days) days ago")
+        case 0: phrase = tr("Today")
+        case 1: phrase = tr("Tomorrow")
+        case -1: phrase = tr("Yesterday")
+        case 2...6: phrase = tr("In \(days) days")
+        case -6 ... -2: phrase = tr("\(-days) days ago")
         default: return d.formatted(.dateTime.month(.abbreviated).day().locale(Lang.shared.locale))
         }
+        return inSentence ? phrase.prefix(1).lowercased() + phrase.dropFirst() : phrase
     }
 
     static func monthLabel(_ yyyymm: String) -> String {
