@@ -1,0 +1,43 @@
+# Render Blueprint for the Lendly API. The iOS app is built with Xcode and ships via TestFlight.
+services:
+  - type: web
+    name: lendly-api
+    runtime: python
+    rootDir: api
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: flask --app wsgi.py db upgrade
+    startCommand: gunicorn wsgi:app --workers 2 --bind 0.0.0.0:$PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13.5"
+      # The database was created outside this Blueprint (render pg create, 2026-10-14):
+      # lendly-db (dpg-db7pa5vavr4c7392taug-a), Postgres 16, basic 256MB, oregon,
+      # database name lendly_zct3, user lendly. Paste its INTERNAL connection string
+      # into this env var in the dashboard; sync: false keeps the Blueprint from clearing it.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APPLE_BUNDLE_ID
+        value: com.sotodev.lendly
+      - key: DEV_RETURN_OTP
+        value: "false"
+      - key: INVITE_LINK_BASE
+        value: lendly://invite
+      # Login-code emails via Mailgun (set the key in the dashboard; same account as the emailer project)
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        sync: false
+      - key: MAILGUN_FROM
+        value: Lendly <no-reply@sotodev.com>
+      - key: MAILGUN_BASE_URL
+        value: https://api.mailgun.net
+      # App Review demo account (set both in the dashboard): this address always gets this fixed
+      # code and nothing is e-mailed, so Apple's reviewers can sign in. Use 8+ digits.
+      - key: REVIEW_LOGIN_EMAIL
+        sync: false
+      - key: REVIEW_LOGIN_CODE
+        sync: false
